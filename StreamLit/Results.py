@@ -2,7 +2,7 @@ import html_to_dataframe
 import results_analysis
 from tkinter import filedialog, messagebox
 import pandas as pd
-import tkinter as tk
+#import tkinter as tk
 from pandastable import Table,config, TableModel
 import streamlit as st
 class ResultsTable:
@@ -64,42 +64,7 @@ class ResultsTable:
                 if name1 == zone_data_Loads.iloc[i,0]:
                     Load_Table.at[c,"Página PowerFactory"] = zone_data_Loads.iloc[i,1]      
     """                          
-    def show_dataframe(self,df,xdim,ydim):
-        
 
-        options = {
-        "cellbackgr": "#333333",  # Color negro para el fondo de todas las celdas
-        "textcolor": "#FFFFFF",   # Color blanco para el texto
-        "grid_color": "#444444",  # Color gris oscuro para la cuadrícula
-        "rowselectedcolor": "#3333FF",  # Azul oscuro cuando se selecciona una fila
-        "colheadercolor": "#222222",  # Encabezado de columna en gris oscuro
-        "fontsize": 12,  # Tamaño del texto
-                    }
-
-          # Crear una nueva ventana para mostrar el DataFrame
-        ventana_dataframe = tk.Toplevel(self.root)
-        ventana_dataframe.title("Load flow summary report")
- 
-        # Ampliar la ventana para asegurar que el DataFrame se vea bien
-        ventana_dataframe.geometry(f"{xdim}x{ydim}")
-        
-        # Crear la tabla y mostrar el DataFrame en la ventana
-        frame = tk.Frame(ventana_dataframe)
-        frame.pack(fill=tk.BOTH, expand=True)
-        
-        #redondeo
-        #df['Value'] = df['Value'].map(lambda x: f"{x:.1f}")
-        #df['Value'] = df['Value'].apply(lambda x: f"{x:.1f}" if pd.notna(x) else x)
-        
-      
-
-        tabla = Table(frame, dataframe=df, showtoolbar=True, showstatusbar=True)
-        config.apply_options(options, tabla)
-
-       
-
-        
-        tabla.show()
     def get_excel(self):
          if self.dfs:
             ruta_guardado = ""
