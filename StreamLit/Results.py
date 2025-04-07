@@ -1,6 +1,6 @@
 import html_to_dataframe
 import results_analysis
-from tkinter import filedialog, messagebox
+#from tkinter import filedialog, messagebox
 import pandas as pd
 #import tkinter as tk
 from pandastable import Table,config, TableModel
@@ -77,7 +77,7 @@ class ResultsTable:
                     self.dfs[2].style.applymap(highlight_cells, subset=["V [pu]"]).to_excel(writer, sheet_name="DataBus", index=False)
                     self.dfs[3].to_excel(writer, sheet_name="Report", index=False)
             except Exception as e:
-                    messagebox.showerror("Error al guardar", f"Hubo un error al guardar el archivo Excel: {e}")         
+                    print("holas")   
          
               
                  
