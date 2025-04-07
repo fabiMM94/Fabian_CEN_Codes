@@ -3,7 +3,7 @@ import results_analysis
 #from tkinter import filedialog, messagebox
 import pandas as pd
 #import tkinter as tk
-from pandastable import Table,config, TableModel
+#from pandastable import Table,config, TableModel
 import streamlit as st
 class ResultsTable:
     def __init__(self,html_full_file_name,root):
