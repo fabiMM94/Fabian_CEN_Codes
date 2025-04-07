@@ -2,7 +2,8 @@ import streamlit as st
 import pathlib
 import os
 from Results import ResultsTable
-
+import sys
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 # Configurar el diseño de la página
 st.set_page_config(page_title="EMTP Results Reporter", layout="wide")
 
