@@ -238,8 +238,9 @@ class DataExtractionOnlyHTML:
         if Names.shape[1] == 4:
             Names.columns = ['Name1', 'Name2', 'NameLF', "Name4"]
         else:
+            Names.columns = ['Name1', 'Name2', 'NameLF']
             raise ValueError(f"Error: Se esperaban 4 columnas, pero se encontraron {Names.shape[1]}. Revisa la estructura del HTML.")
-        #Names.columns = ['Name1', 'Name2', 'NameLF',"Name4"]
+           
 
         Values = Data_GEN.iloc[:, -3:] 
         Values.columns = ['V [kV]','P [MW]','Q [MVAr]']
