@@ -14,6 +14,8 @@ class ResultsTable:
     def get_report(self):
         data_extractor = html_to_dataframe.DataExtractionOnlyHTML(self.html_full_file_name)
         Generation_Table, Load_Table = data_extractor.Data_Extraction(self.html_full_file_name)
+        
+
         Bus_extractor = html_to_dataframe.BusExtraction(self.html_full_file_name)
         Bus_Table = Bus_extractor.BusData()
        
