@@ -1,0 +1,62 @@
+
+parseScriptFile("make_file_name.dwj");
+parseScriptFile("program_.dwj");
+parseScriptFile("run_emtp.dwj");
+parseScriptFile("check_my_filename.dwj");
+parseScriptFile("find_data_in_object.dwj");
+parseScriptFile("runLoadFLow.dwj"); //* to use the load flow
+var cct = currentCircuit;
+
+
+
+
+
+
+
+
+function loadOperationPoint(dataFile, deviceType) {
+  /**
+   ** Load the data of the operation point for a specific device type from a file.
+   * @param {string} dataFile - String with the name of the file.
+   * @param {string} deviceType - String with the number or name of the device type.
+   * @returns {string} - Message with the result of the operation.
+   * - 0 => PV: PV parks.
+   * - 1 => SG: Synchronous Generators.
+   * - 2 => loadLF: loads with a lf, only for the firs layer.
+   * - 3 => lines: lines transmissions with CP model.
+   * - 4 => TF: transformers.
+   * - 5 => WP: Wind Parks.
+   * - 6 => buses: names of the buses (only on top level).
+   * - 7 => lfToSG: lf devices associated to every SG.
+   * - 8 => tfToSG: tf devices associated to every SG.
+   * - 9 => allToSG: lf and tf devices associated to every SG.
+   * - 10 => LF: all the LF devices in the circuit.
+   */
+
+  switch (deviceType) {
+    case "PV":
+    case 0:
+      var dataPV = returnFileContent(dataFile);
+      var op_PV = new interpreteFile(dataPV, 1);
+      changeData(op_PV.names, op_PV.attributes, op_PV.values, 0);
+      break;
+    case "loadLF":
+    case 2:
+      var dataLoadLF = returnFileContent(dataFile);
+      var op_loadLF = new interpreteFile(dataLoadLF, 1);
+      changeData(op_loadLF.names, op_loadLF.attributes, op_loadLF.values, 2);
+      break;
+    case "WP":
+    case 5:
+      var dataWP = returnFileContent(dataFile);
+      var op_WP = new interpreteFile(dataWP, 1);
+      changeData(op_WP.names, op_WP.attributes, op_WP.values, 5);
+      break;
+    case "LF":
+    case 10:
+      var dataLF = returnFileContent(dataFile);
+      var op_LF = new interpreteFile(dataLF, 1);
+      changeData(op_LF.names, op_LF.attributes, op_LF.values, 10);
+      break;
+  }
+}

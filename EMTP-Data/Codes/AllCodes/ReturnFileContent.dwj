@@ -1,0 +1,35 @@
+parseScriptFile("make_file_name.dwj");
+parseScriptFile("program_.dwj");
+parseScriptFile("run_emtp.dwj");
+parseScriptFile("check_my_filename.dwj");
+parseScriptFile("find_data_in_object.dwj");
+parseScriptFile("runLoadFLow.dwj"); //* to use the load flow
+
+
+
+
+
+
+
+
+
+
+function returnFileContent(fileName) {
+  //return the full path of file name assuming fileName is located in the same folder as the design.
+  var output_file = check_my_filename(fileName);
+
+  // var output_file = fileName;
+  //Create file object. The documentation is in Help & Support/5 - Javascript based Scripting in EMTP, link for SPFile.
+  fid = SPFile(output_file);
+
+  //Opens the file for read-only access.
+  if (fid.openRead()) {
+    var content = fid.readText(); //Reads the contents of the file and returns a string
+    fid.close();
+    return content;
+  } else {
+    //Sanity check
+    alert("Error : impossible to read the parameter file: " + fileName);
+    halt(); //Stop the script
+  }
+}

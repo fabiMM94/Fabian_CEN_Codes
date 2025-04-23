@@ -1,0 +1,63 @@
+// ----- Previo : Importando Codigos
+
+parseScriptFile("AllCodes\\StateDatav2.dwj");
+parseScriptFile("AllCodes\\Grid_all_Data.dwj");
+parseScriptFile("AllCodes\\Load_OP_point.dwj");
+parseScriptFile("AllCodes\\ChangeData.dwj");
+parseScriptFile("AllCodes\\OutputFile.dwj");
+parseScriptFile("AllCodes\\Switch.dwj")
+parseScriptFile("AllCodes\\InterpreteFile.dwj")
+parseScriptFile("AllCodes\\ReturnFileContent.dwj")
+//parseScriptFile("changeValuesInBlackBoxTable.dwj")
+//------ Definiendo rutas
+//var pathData1 = 'C:\\Users\\fabian.medina\\OneDrive - Coordinador El\u00e9ctrico Nacional\\Escritorio\\CEN_Fabian\\Codigos\\EMTP-Scripts\\Draft Codes\\EMTP_Codes-Fabi'
+
+// SOLO CAMBIEN EL PATHDATA1
+
+//var pathData1 = 'C:\\Users\\fabian.medina\\OneDrive - Coordinador El\u00e9ctrico Nacional\\Escritorio\\CEN_Fabian\\Codigos\\EMTP-Scripts\\EMTP-Data\\Codes'
+var pathData1= cct.getAttribute('CctPath')
+var pathData2 ='\Data_import';
+var pathData = pathData1+pathData2
+
+
+var cct = currentCircuit;
+
+SwitchConsole=SPRichConsole('Data IMPORT','Data IMPORT')
+SwitchConsole.clear
+//  ---------------------------------- SACANDO DATOS------------------------------------------------------------------------
+ 
+//var data_switch = SwitchData();
+//outputFile(data_switch, "data_switch_", pathData);
+SwitchConsole.setFont("Arial Blue 14 white")
+SwitchConsole.writeln('#-------------------------------------------------')
+SwitchConsole.writeln('Se inicia el proceso carga de referencias')
+SwitchConsole.writeln('#-------------------------------------------------')
+
+
+
+
+//writeln('Se inicia el proceso de extracion de datos')
+
+
+
+
+//-------------- Referencias--------------------------------------------------------------------------------------------------------
+dataPV = "Data_import\\PVData.csv"
+
+dataWP = "Data_import\\WPData.csv"
+
+dataLF = "Data_import\\LFData.csv"
+
+dataLoad = "Data_import\\LoadData.csv"
+
+//dataPV = "Data_input\\PV_ref_redespacho.csv"
+//dataWP ="Data_input\\WP_ref_prorrata.csv"
+// arma el punto de operación como input en JS y luego carga los nuevos puntos de operación en EMTP
+loadOperationPoint(dataPV, 0);
+SwitchConsole.writeln('Se cargan datos PV')
+loadOperationPoint(dataWP, 5);
+SwitchConsole.writeln('Se cargan datos WP')
+loadOperationPoint(dataLF,10);
+SwitchConsole.writeln('Se cargan datos LF')
+loadOperationPoint(dataLoad,2);
+SwitchConsole.writeln('Se cargan datos Loads')

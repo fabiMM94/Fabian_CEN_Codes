@@ -1,0 +1,88 @@
+
+
+// Función para listar transformadores y su estado (Encendido/Apagado)
+function listarTransformadores() {
+    
+    // Obtener el circuito actual
+    var cct = currentCircuit();
+    if (!cct) {
+        SwitchConsole.setFont("Arial Red 12");
+        SwitchConsole.writeln("No hay un circuito abierto actualmente.");
+        return;
+    }
+
+    // Encabezado con formato
+    SwitchConsole.setFont("Arial Blue 14 white");
+    SwitchConsole.writeln("LISTADO DE TRANSFORMADORES");
+    
+    // Definimos la fuente para el encabezado y los datos
+    var fontHeaderData = "Arial Blue 12";
+    
+    // Encabezado de columnas
+    SwitchConsole.setFont(fontHeaderData);
+    SwitchConsole.writeln("Name, Estado, Libtype");
+    
+    // Buscar todos los transformadores en el nivel superior
+    var transformadores = cct.devices(4, -1, 6, "LibName", "transformers.clf");
+    
+    // Si no hay transformadores en el nivel superior, buscar en todos los niveles
+    if (!transformadores || transformadores.length == 0) {
+        transformadores = cct.devices("LibName", "transformers.clf");
+    }
+    
+    // Verificar si se encontraron transformadores
+    if (!transformadores || transformadores.length == 0) {
+        SwitchConsole.setFont("Arial Red 12");
+        SwitchConsole.writeln("No se encontraron transformadores en el circuito.");
+        return;
+    }
+    
+    // Variables para conteo
+    var encendidos = 0;
+    var apagados = 0;
+    
+    // Recorrer todos los transformadores encontrados
+    for (var i = 0; i < transformadores.length; i++) {
+        var transformador = transformadores[i];
+        
+        // Obtener el nombre del transformador
+        var nombre = transformador.getAttribute("Name");
+        if (!nombre) nombre = "Transformador_" + (i + 1);
+        
+        // Verificar si está excluido - Nueva lógica
+        var exclude = transformador.getAttribute("Exclude");
+        var estado;
+        
+        // Si Exclude es igual a "Ex", está apagado; en cualquier otro caso, está encendido
+        if (exclude === "Ex") {
+            estado = "Apagado";
+            apagados++;
+        } else {
+            estado = "Encendido";
+            encendidos++;
+        }
+        
+        // Obtener el tipo de librería
+        var libtype = transformador.getAttribute("LibType") || "";
+        
+        // Usamos la misma fuente que el encabezado, solo cambiando el color según el estado
+        if (estado === "Encendido") {
+            SwitchConsole.setFont("Arial Green 12"); // Verde para encendido
+        } else {
+            SwitchConsole.setFont("Arial Red 12"); // Rojo para apagado
+        }
+        
+        // Mostrar en la consola
+        SwitchConsole.writeln(nombre + ", " + estado + ", " + libtype);
+    }
+    
+    // Resumen final
+    SwitchConsole.setFont(fontHeaderData);
+    SwitchConsole.writeln("\nResumen:");
+    SwitchConsole.writeln("Total de transformadores: " + transformadores.length);
+    SwitchConsole.writeln("Transformadores encendidos: " + encendidos);
+    SwitchConsole.writeln("Transformadores apagados: " + apagados);
+    
+    return transformadores;
+}
+

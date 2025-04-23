@@ -1,0 +1,690 @@
+// Función padre que contiene todas las demás funciones
+function verificadorGeneradores() {
+  // Función principal para verificar estado de generadores
+  function verificarEstadoGeneradores(rutaSalida) {
+    // Si no se proporciona una ruta de salida, usaremos una predeterminada
+    if (rutaSalida === undefined) {
+      var pathData1 = 'C:\\Users\\fabian.medina\\OneDrive - Coordinador Eléctrico Nacional\\Escritorio\\CEN_Fabian\\Codigos\\EMTP-Scripts\\Draft Codes\\EMTP_Codes-Fabi'
+      var pathData2 ='\\Data';
+      var pathData = pathData1+pathData2
+      rutaSalida = pathData;
+    }
+    
+    // Obtener circuito actual
+    var cct = currentCircuit();
+    
+    // Resultados para almacenar los estados
+    var resultadosPV = [];
+    var resultadosWP = [];
+    var resultadosSG = [];
+    
+    // Crear consola para mostrar resultados
+    var GeneratorConsole = SPRichConsole('Generadores', 'Estado de Generadores');
+    GeneratorConsole.clear();
+    GeneratorConsole.setFont("Arial Blue 14 white");
+    GeneratorConsole.writeln('=== ESTADO DE GENERADORES ===');
+    
+    // Informacion del circuito actual
+    GeneratorConsole.setFont("Arial Green 12 white");
+    GeneratorConsole.writeln('Diseno: ' + cct.getAttribute('CctPath') + cct.name());
+    GeneratorConsole.setFont("Arial Black 12 white");
+    GeneratorConsole.activate();
+    
+    // Buscar dispositivos no excluidos (activados)
+    var all_non_excl_devs = cct.devices(4, -1, 6, "Exclude", ""); // dispositivos incluidos (nivel 1)
+    
+    // Recorrer los dispositivos de nivel 1 (no excluidos)
+    for (var i = 0; i < all_non_excl_devs.length; i++) {
+      var dev = all_non_excl_devs[i];
+      var libType = dev.getAttribute("LibType");
+      var name_1 = dev.getAttribute("Name");
+      var status_1 = "1"; // Está activo (no excluido)
+      
+      // Si no tiene script asociado, puede tener subcircuitos
+      if (dev.getAttribute("Script.Open.Dev") == "") {
+        var cct_2 = dev.subCircuit(); // obtener subcircuito
+        
+        // Nivel 2 - Dispositivos no excluidos
+        var all_non_excl_devs_2 = cct_2.devices(4, -1, 4, "Exclude", "");
+        for (var j = 0; j < all_non_excl_devs_2.length; j++) {
+          var dev_2 = all_non_excl_devs_2[j];
+          var libType_2 = dev_2.getAttribute("LibType");
+          var name_2 = dev_2.getAttribute("Name");
+          var status_2 = "1"; // No excluido
+          
+          // Verificar si es un subcircuito más (nivel 3)
+          if (dev_2.getAttribute("Script.Open.Dev") == "") {
+            var cct_3 = dev_2.subCircuit();
+            
+            // Nivel 3 - Dispositivos no excluidos
+            var all_non_excl_devs_3 = cct_3.devices(4, -1, 4, "Exclude", "");
+            for (var k = 0; k < all_non_excl_devs_3.length; k++) {
+              var dev_3 = all_non_excl_devs_3[k];
+              var libType_3 = dev_3.getAttribute("LibType");
+              var name_3 = dev_3.getAttribute("Name");
+              var status_3 = "1"; // No excluido
+              
+              // Verificar si es generador sincrónico (nivel 3)
+              if (esSincronico(libType_3)) {
+                var status_final = status_1 === "1" && status_2 === "1" && status_3 === "1" ? "1" : "0";
+                resultadosSG.push({
+                  tipo: "Sincrónico",
+                  nombre1: name_1,
+                  nombre2: name_2,
+                  nombre3: name_3,
+                  tipo_especifico: libType_3,
+                  estado1: status_1,
+                  estado2: status_2,
+                  estado3: status_3,
+                  estadoFinal: status_final
+                });
+              }
+            }
+            
+            // Nivel 3 - Dispositivos excluidos
+            var all_excl_devs_3 = cct_3.devices(4, -1, 4, "Exclude", "Ex");
+            for (var k = 0; k < all_excl_devs_3.length; k++) {
+              var dev_3 = all_excl_devs_3[k];
+              var libType_3 = dev_3.getAttribute("LibType");
+              var name_3 = dev_3.getAttribute("Name");
+              var status_3 = "0"; // Excluido
+              
+              // Verificar si es generador sincrónico (nivel 3)
+              if (esSincronico(libType_3)) {
+                var status_final = status_1 === "1" && status_2 === "1" && status_3 === "1" ? "1" : "0";
+                resultadosSG.push({
+                  tipo: "Sincrónico",
+                  nombre1: name_1,
+                  nombre2: name_2,
+                  nombre3: name_3,
+                  tipo_especifico: libType_3,
+                  estado1: status_1,
+                  estado2: status_2,
+                  estado3: status_3,
+                  estadoFinal: status_final
+                });
+              }
+            }
+            
+            continue; // Ya procesamos este dispositivo, pasamos al siguiente
+          }
+          
+          // Verificar si es un generador (nivel 2)
+          if (esSincronico(libType_2)) {
+            var status_final = status_1 === "1" && status_2 === "1" ? "1" : "0";
+            resultadosSG.push({
+              tipo: "Sincrónico",
+              nombre1: name_1,
+              nombre2: name_2,
+              nombre3: "-",
+              tipo_especifico: libType_2,
+              estado1: status_1,
+              estado2: status_2,
+              estado3: "-",
+              estadoFinal: status_final
+            });
+          } else if (esFotovoltaico(libType_2)) {
+            var status_final = status_1 === "1" && status_2 === "1" ? "1" : "0";
+            resultadosPV.push({
+              tipo: "Fotovoltaico",
+              nombre1: name_1,
+              nombre2: name_2,
+              tipo_especifico: libType_2,
+              estado1: status_1,
+              estado2: status_2,
+              estadoFinal: status_final
+            });
+          } else if (esEolico(libType_2)) {
+            var status_final = status_1 === "1" && status_2 === "1" ? "1" : "0";
+            resultadosWP.push({
+              tipo: "Eólico",
+              nombre1: name_1,
+              nombre2: name_2,
+              tipo_especifico: libType_2,
+              estado1: status_1,
+              estado2: status_2,
+              estadoFinal: status_final
+            });
+          }
+        }
+        
+        // Nivel 2 - Dispositivos excluidos
+        var all_excl_devs_2 = cct_2.devices(4, -1, 4, "Exclude", "Ex");
+        for (var j = 0; j < all_excl_devs_2.length; j++) {
+          var dev_2 = all_excl_devs_2[j];
+          var libType_2 = dev_2.getAttribute("LibType");
+          var name_2 = dev_2.getAttribute("Name");
+          var status_2 = "0"; // Excluido
+          
+          // Verificar si es un subcircuito más (nivel 3)
+          if (dev_2.getAttribute("Script.Open.Dev") == "") {
+            var cct_3 = dev_2.subCircuit();
+            
+            // Nivel 3 - Dispositivos (no excluidos y excluidos)
+            procesarNivel3(cct_3, name_1, name_2, status_1, status_2, resultadosSG);
+            
+            continue; // Ya procesamos este dispositivo, pasamos al siguiente
+          }
+          
+          // Verificar si es un generador (nivel 2)
+          if (esSincronico(libType_2)) {
+            var status_final = status_1 === "1" && status_2 === "1" ? "1" : "0";
+            resultadosSG.push({
+              tipo: "Sincrónico",
+              nombre1: name_1,
+              nombre2: name_2,
+              nombre3: "-",
+              tipo_especifico: libType_2,
+              estado1: status_1,
+              estado2: status_2,
+              estado3: "-",
+              estadoFinal: status_final
+            });
+          } else if (esFotovoltaico(libType_2)) {
+            var status_final = status_1 === "1" && status_2 === "1" ? "1" : "0";
+            resultadosPV.push({
+              tipo: "Fotovoltaico",
+              nombre1: name_1,
+              nombre2: name_2,
+              tipo_especifico: libType_2,
+              estado1: status_1,
+              estado2: status_2,
+              estadoFinal: status_final
+            });
+          } else if (esEolico(libType_2)) {
+            var status_final = status_1 === "1" && status_2 === "1" ? "1" : "0";
+            resultadosWP.push({
+              tipo: "Eólico",
+              nombre1: name_1,
+              nombre2: name_2,
+              tipo_especifico: libType_2,
+              estado1: status_1,
+              estado2: status_2,
+              estadoFinal: status_final
+            });
+          }
+        }
+        
+        continue; // Ya procesamos este dispositivo, pasamos al siguiente
+      }
+      
+      // Es un dispositivo de nivel 1 sin subcircuitos
+      if (esSincronico(libType)) {
+        resultadosSG.push({
+          tipo: "Sincrónico",
+          nombre1: name_1,
+          nombre2: "-",
+          nombre3: "-",
+          tipo_especifico: libType,
+          estado1: status_1,
+          estado2: "-",
+          estado3: "-",
+          estadoFinal: status_1
+        });
+      } else if (esFotovoltaico(libType)) {
+        resultadosPV.push({
+          tipo: "Fotovoltaico",
+          nombre1: name_1,
+          nombre2: "-",
+          tipo_especifico: libType,
+          estado1: status_1,
+          estado2: "-",
+          estadoFinal: status_1
+        });
+      } else if (esEolico(libType)) {
+        resultadosWP.push({
+          tipo: "Eólico",
+          nombre1: name_1,
+          nombre2: "-",
+          tipo_especifico: libType,
+          estado1: status_1,
+          estado2: "-",
+          estadoFinal: status_1
+        });
+      }
+    }
+    
+    // Procesar dispositivos excluidos (nivel 1)
+    var all_excl_devs = cct.devices(4, -1, 6, "Exclude", "Ex");
+    for (var i = 0; i < all_excl_devs.length; i++) {
+      var dev = all_excl_devs[i];
+      var libType = dev.getAttribute("LibType");
+      var name_1 = dev.getAttribute("Name");
+      var status_1 = "0"; // Está excluido
+      
+      // Si no tiene script asociado, puede tener subcircuitos
+      if (dev.getAttribute("Script.Open.Dev") == "") {
+        var cct_2 = dev.subCircuit();
+        
+        // Procesar subcircuitos nivel 2 (tanto incluidos como excluidos)
+        procesarNivel2(cct_2, name_1, status_1, resultadosSG, resultadosPV, resultadosWP);
+        
+        continue; // Ya procesamos este dispositivo, pasamos al siguiente
+      }
+      
+      // Es un dispositivo de nivel 1 sin subcircuitos
+      if (esSincronico(libType)) {
+        resultadosSG.push({
+          tipo: "Sincrónico",
+          nombre1: name_1,
+          nombre2: "-",
+          nombre3: "-",
+          tipo_especifico: libType,
+          estado1: status_1,
+          estado2: "-",
+          estado3: "-",
+          estadoFinal: status_1
+        });
+      } else if (esFotovoltaico(libType)) {
+        resultadosPV.push({
+          tipo: "Fotovoltaico",
+          nombre1: name_1,
+          nombre2: "-",
+          tipo_especifico: libType,
+          estado1: status_1,
+          estado2: "-",
+          estadoFinal: status_1
+        });
+      } else if (esEolico(libType)) {
+        resultadosWP.push({
+          tipo: "Eólico",
+          nombre1: name_1,
+          nombre2: "-",
+          tipo_especifico: libType,
+          estado1: status_1,
+          estado2: "-",
+          estadoFinal: status_1
+        });
+      }
+    }
+    
+    // Mostrar resultados en la consola
+    mostrarResultados(GeneratorConsole, resultadosSG, resultadosPV, resultadosWP, rutaSalida);
+    
+    return {
+      sincronicos: resultadosSG,
+      fotovoltaicos: resultadosPV,
+      eolicos: resultadosWP
+    };
+  }
+  
+  // Función para procesar dispositivos de nivel 2
+  function procesarNivel2(cct_2, name_1, status_1, resultadosSG, resultadosPV, resultadosWP) {
+    // Dispositivos no excluidos
+    var all_non_excl_devs_2 = cct_2.devices(4, -1, 4, "Exclude", "");
+    for (var j = 0; j < all_non_excl_devs_2.length; j++) {
+      var dev_2 = all_non_excl_devs_2[j];
+      var libType_2 = dev_2.getAttribute("LibType");
+      var name_2 = dev_2.getAttribute("Name");
+      var status_2 = "1"; // No excluido
+      
+      // Verificar si es un subcircuito mas (nivel 3)
+      if (dev_2.getAttribute("Script.Open.Dev") == "") {
+        var cct_3 = dev_2.subCircuit();
+        procesarNivel3(cct_3, name_1, name_2, status_1, status_2, resultadosSG);
+        continue;
+      }
+      
+      // Verificar si es un generador (nivel 2)
+      procesarGenerador(libType_2, name_1, name_2, "-", status_1, status_2, "-", 
+        resultadosSG, resultadosPV, resultadosWP);
+    }
+    
+    // Dispositivos excluidos
+    var all_excl_devs_2 = cct_2.devices(4, -1, 4, "Exclude", "Ex");
+    for (var j = 0; j < all_excl_devs_2.length; j++) {
+      var dev_2 = all_excl_devs_2[j];
+      var libType_2 = dev_2.getAttribute("LibType");
+      var name_2 = dev_2.getAttribute("Name");
+      var status_2 = "0"; // Excluido
+      
+      // Verificar si es un subcircuito mas (nivel 3)
+      if (dev_2.getAttribute("Script.Open.Dev") == "") {
+        var cct_3 = dev_2.subCircuit();
+        procesarNivel3(cct_3, name_1, name_2, status_1, status_2, resultadosSG);
+        continue;
+      }
+      
+      // Verificar si es un generador (nivel 2)
+      procesarGenerador(libType_2, name_1, name_2, "-", status_1, status_2, "-", 
+        resultadosSG, resultadosPV, resultadosWP);
+    }
+  }
+  
+  // Función para procesar dispositivos de nivel 3
+  function procesarNivel3(cct_3, name_1, name_2, status_1, status_2, resultadosSG) {
+    // Dispositivos no excluidos
+    var all_non_excl_devs_3 = cct_3.devices(4, -1, 4, "Exclude", "");
+    for (var k = 0; k < all_non_excl_devs_3.length; k++) {
+      var dev_3 = all_non_excl_devs_3[k];
+      var libType_3 = dev_3.getAttribute("LibType");
+      var name_3 = dev_3.getAttribute("Name");
+      var status_3 = "1"; // No excluido
+      
+      if (esSincronico(libType_3)) {
+        var status_final = status_1 === "1" && status_2 === "1" && status_3 === "1" ? "1" : "0";
+        resultadosSG.push({
+          tipo: "Sincronico",
+          nombre1: name_1,
+          nombre2: name_2,
+          nombre3: name_3,
+          tipo_especifico: libType_3,
+          estado1: status_1,
+          estado2: status_2,
+          estado3: status_3,
+          estadoFinal: status_final
+        });
+      }
+    }
+    
+    // Dispositivos excluidos
+    var all_excl_devs_3 = cct_3.devices(4, -1, 4, "Exclude", "Ex");
+    for (var k = 0; k < all_excl_devs_3.length; k++) {
+      var dev_3 = all_excl_devs_3[k];
+      var libType_3 = dev_3.getAttribute("LibType");
+      var name_3 = dev_3.getAttribute("Name");
+      var status_3 = "0"; // Excluido
+      
+      if (esSincronico(libType_3)) {
+        var status_final = status_1 === "1" && status_2 === "1" && status_3 === "1" ? "1" : "0";
+        resultadosSG.push({
+          tipo: "Sincronico",
+          nombre1: name_1,
+          nombre2: name_2,
+          nombre3: name_3,
+          tipo_especifico: libType_3,
+          estado1: status_1,
+          estado2: status_2,
+          estado3: status_3,
+          estadoFinal: status_final
+        });
+      }
+    }
+  }
+  
+  // Función para procesar un generador y agregarlo al resultado correspondiente
+  function procesarGenerador(libType, name_1, name_2, name_3, status_1, status_2, status_3, 
+                             resultadosSG, resultadosPV, resultadosWP) {
+    if (esSincronico(libType)) {
+      var statusFinal;
+      
+      if (name_3 === "-") {
+        statusFinal = status_1 === "1" && status_2 === "1" ? "1" : "0";
+      } else {
+        statusFinal = status_1 === "1" && status_2 === "1" && status_3 === "1" ? "1" : "0";
+      }
+      
+      resultadosSG.push({
+        tipo: "Sincronico",
+        nombre1: name_1,
+        nombre2: name_2,
+        nombre3: name_3,
+        tipo_especifico: libType,
+        estado1: status_1,
+        estado2: status_2,
+        estado3: status_3,
+        estadoFinal: statusFinal
+      });
+    } else if (esFotovoltaico(libType)) {
+      var statusFinal = status_1 === "1" && status_2 === "1" ? "1" : "0";
+      resultadosPV.push({
+        tipo: "Fotovoltaico",
+        nombre1: name_1,
+        nombre2: name_2,
+        tipo_especifico: libType,
+        estado1: status_1,
+        estado2: status_2,
+        estadoFinal: statusFinal
+      });
+    } else if (esEolico(libType)) {
+      var statusFinal = status_1 === "1" && status_2 === "1" ? "1" : "0";
+      resultadosWP.push({
+        tipo: "Eolico",
+        nombre1: name_1,
+        nombre2: name_2,
+        tipo_especifico: libType,
+        estado1: status_1,
+        estado2: status_2,
+        estadoFinal: statusFinal
+      });
+    }
+  }
+  
+  // Función para determinar si es un generador sincronico
+  function esSincronico(tipo) {
+    return tipo === "synchronous machine" || tipo === "Synchronous";
+  }
+  
+  // Función para determinar si es un generador fotovoltaico
+  function esFotovoltaico(tipo) {
+    return tipo === "WECC PV park" || tipo === "PV park";
+  }
+  
+  // Función para determinar si es un generador eolico
+  function esEolico(tipo) {
+    return tipo === "WECC WP" || tipo === "WECC Wind park" || 
+           tipo === "DFIG Wind park" || tipo === "FC Wind park";
+  }
+  
+  // Función para mostrar los resultados en la consola y exportarlos
+  function mostrarResultados(console, resultadosSG, resultadosPV, resultadosWP, rutaSalida) {
+    // Espacio en blanco
+    console.writeln('');
+    
+    var totalGeneradores = resultadosSG.length + resultadosPV.length + resultadosWP.length;
+    
+    // Preparar contenido para archivos CSV
+    var contenidoSG = 'Name1,Name2,Name3,Estado,Tipo,LibType\n';
+    var contenidoPV = 'Name1,Name2,Name3,Estado,Tipo,LibType\n';
+    var contenidoWP = 'Name1,Name2,Name3,Estado,Tipo,LibType\n';
+    
+    if (totalGeneradores === 0) {
+      console.writeln('No se encontraron generadores en este diseno!');
+      return;
+    }
+    
+    // Mostrar generadores sincronicos
+    if (resultadosSG.length > 0) {
+      console.setFont("Arial Blue 12 white");
+      console.writeln('');
+      console.writeln('=== GENERADORES SINCRONICOS ===');
+      console.setFont("Arial Black 12 white");
+      
+      // Encabezado de la tabla
+      console.writeln('Name1, Name2, Name3, Estado, Tipo, LibType');
+      
+      for (var i = 0; i < resultadosSG.length; i++) {
+        var gen = resultadosSG[i];
+        var estado = gen.estadoFinal === "1" ? "ENCENDIDO" : "APAGADO";
+        
+        // Para dispositivos sin capa: Name3 = "-"
+        // Para dispositivos con 1 capa: Name3 = "-", Name2 = Name1
+        // Para dispositivos con 2 capas: Name3 es el nombre real
+        var name3 = gen.nombre3;
+        var name2 = gen.nombre2;
+        
+        if (name2 === "-" && name3 === "-") {
+          // Sin capa - dejar como está
+        } else if (name3 === "-") {
+          // Con 1 capa - Name2 = Name1
+          name2 = gen.nombre1;
+        }
+        
+        console.writeln(
+          gen.nombre1 + ', ' + 
+          name2 + ', ' +
+          name3 + ', ' +
+          estado + ', ' +
+          'Sincronico' + ', ' +
+          gen.tipo_especifico
+        );
+        
+        // Agregar al contenido CSV
+        contenidoSG += gen.nombre1 + ',' + name2 + ',' + name3 + ',' + 
+                     estado + ',Sincronico,' + gen.tipo_especifico + '\n';
+      }
+    }
+    
+    // Mostrar generadores fotovoltaicos
+    if (resultadosPV.length > 0) {
+      console.setFont("Arial Blue 12 white");
+      console.writeln('');
+      console.writeln('=== GENERADORES FOTOVOLTAICOS ===');
+      console.setFont("Arial Black 12 white");
+      
+      // Encabezado de la tabla
+      console.writeln('Name1, Name2, Name3, Estado, Tipo, LibType');
+      
+      for (var i = 0; i < resultadosPV.length; i++) {
+        var gen = resultadosPV[i];
+        var estado = gen.estadoFinal === "1" ? "ENCENDIDO" : "APAGADO";
+        
+        // Para dispositivos sin capa: Name2 = "-", Name3 = "-"
+        // Para dispositivos con capa: Name2 = Name1, Name3 = "-"
+        var name2 = gen.nombre2;
+        var name3 = "-";
+        
+        if (name2 === "-") {
+          // Sin capa - dejar como está
+        } else {
+          // Con capa - Name2 = Name1
+          name2 = gen.nombre1;
+        }
+        
+        console.writeln(
+          gen.nombre1 + ', ' + 
+          name2 + ', ' +
+          name3 + ', ' +
+          estado + ', ' +
+          'Fotovoltaico' + ', ' +
+          gen.tipo_especifico
+        );
+        
+        // Agregar al contenido CSV
+        contenidoPV += gen.nombre1 + ',' + name2 + ',' + name3 + ',' + 
+                     estado + ',Fotovoltaico,' + gen.tipo_especifico + '\n';
+      }
+    }
+    
+    // Mostrar generadores eolicos
+    if (resultadosWP.length > 0) {
+      console.setFont("Arial Blue 12 white");
+      console.writeln('');
+      console.writeln('=== GENERADORES EOLICOS ===');
+      console.setFont("Arial Black 12 white");
+      
+      // Encabezado de la tabla
+      console.writeln('Name1, Name2, Name3, Estado, Tipo, LibType');
+      
+      for (var i = 0; i < resultadosWP.length; i++) {
+        var gen = resultadosWP[i];
+        var estado = gen.estadoFinal === "1" ? "ENCENDIDO" : "APAGADO";
+        
+        // Para dispositivos sin capa: Name2 = "-", Name3 = "-"
+        // Para dispositivos con capa: Name2 = Name1, Name3 = "-"
+        var name2 = gen.nombre2;
+        var name3 = "-";
+        
+        if (name2 === "-") {
+          // Sin capa - dejar como está
+        } else {
+          // Con capa - Name2 = Name1
+          name2 = gen.nombre1;
+        }
+        
+        console.writeln(
+          gen.nombre1 + ', ' + 
+          name2 + ', ' +
+          name3 + ', ' +
+          estado + ', ' +
+          'Eolico' + ', ' +
+          gen.tipo_especifico
+        );
+        
+        // Agregar al contenido CSV
+        contenidoWP += gen.nombre1 + ',' + name2 + ',' + name3 + ',' + 
+                     estado + ',Eolico,' + gen.tipo_especifico + '\n';
+      }
+    }
+    
+    // Resumen
+    console.setFont("Arial Blue 14 white");
+    console.writeln('');
+    console.writeln('Total de generadores encontrados: ' + totalGeneradores);
+    console.writeln('- Sincronicos: ' + resultadosSG.length);
+    console.writeln('- Fotovoltaicos: ' + resultadosPV.length);
+    console.writeln('- Eolicos: ' + resultadosWP.length);
+    
+    // Exportar a archivos
+    if (rutaSalida !== undefined) {
+      //var fecha = getCurrentDate();
+      var nombreArchivo = 'estado_generadores_';
+      
+      try {
+        // Archivo para todos los generadores
+        var contenidoTodos = 'Name1,Name2,Name3,Estado,Tipo,LibType\n';
+        contenidoTodos += contenidoSG.substring(contenidoSG.indexOf('\n') + 1); // Eliminar primera línea (encabezado)
+        contenidoTodos += contenidoPV.substring(contenidoPV.indexOf('\n') + 1);
+        contenidoTodos += contenidoWP.substring(contenidoWP.indexOf('\n') + 1);
+        
+        outputFile(contenidoTodos, nombreArchivo, rutaSalida);
+        
+      // Archivos separados por tipo
+      if (resultadosSG.length > 0) {
+        outputFile(contenidoSG, nombreArchivo + '_sincronicos', rutaSalida);
+      }
+      if (resultadosPV.length > 0) {
+        outputFile(contenidoPV, nombreArchivo + '_fotovoltaicos', rutaSalida);
+      }
+      if (resultadosWP.length > 0) {
+        outputFile(contenidoWP, nombreArchivo + '_eolicos', rutaSalida);
+      }
+      
+      console.writeln('');
+      console.writeln('Archivos CSV generados en: ' + rutaSalida);
+      console.writeln('- ' + nombreArchivo + '.csv (Todos los generadores)');
+      if (resultadosSG.length > 0) {
+        console.writeln('- ' + nombreArchivo + '_sincronicos.csv');
+      }
+      if (resultadosPV.length > 0) {
+        console.writeln('- ' + nombreArchivo + '_fotovoltaicos.csv');
+      }
+      if (resultadosWP.length > 0) {
+        console.writeln('- ' + nombreArchivo + '_eolicos.csv');
+      }
+    } catch (e) {
+      console.writeln('');
+      console.writeln('Error al exportar archivos: Asegurate de que la ruta ' + rutaSalida + ' exista y sea accesible.');
+    }
+  }
+  
+  console.writeln('');
+  console.writeln('Fin del reporte de generadores');
+}
+
+// Función para obtener la fecha actual en formato YYYYMMDD
+  // function getCurrentDate() {
+  // var fecha = new Date();
+  // var año = fecha.getFullYear();
+  // var mes = (fecha.getMonth() + 1).toString().padStart(2, '0');
+  // var dia = fecha.getDate().toString().padStart(2, '0');
+  // return año + mes + dia;
+  // }
+
+// Función para escribir el contenido en un archivo
+  function outputFile(contenido, nombreArchivo, rutaDestino) {
+  // Normalizar la ruta destino (asegurarse que termine con una barra)
+  if (!rutaDestino.endsWith('/') && !rutaDestino.endsWith('\\')) {
+    rutaDestino += '\\';
+  }
+  
+  // Crear el objeto de archivo
+  var archivo = SPFile(rutaDestino + nombreArchivo + '.csv');
+  
+  // Escribir el contenido
+  archivo.write(contenido);
+  }
+
+// Ejecutar la verificación de generadores y retornar el resultado
+return verificarEstadoGeneradores("C:/Temp/");
+}

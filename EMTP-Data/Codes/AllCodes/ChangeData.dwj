@@ -1,0 +1,762 @@
+
+
+parseScriptFile("make_file_name.dwj");
+parseScriptFile("program_.dwj");
+parseScriptFile("run_emtp.dwj");
+parseScriptFile("check_my_filename.dwj");
+parseScriptFile("find_data_in_object.dwj");
+parseScriptFile("runLoadFLow.dwj"); //* to use the load flow
+
+
+function changeData(Names, Parameters, Values, deviceType) {
+  /**
+   ** Changes the data as specified.
+   * @param {object} Names - Names of the devices.
+   * @param {object} Parameters - It's especify in every loop.
+   * @param {object} Values - Values to replace.
+   * @param {number} deviceType
+   * - 0 => PV: PV parks.
+   * - 1 => SG: Synchronous Generators.
+   * - 2 => loadLF: loads with a lf, only for the firs layer.
+   * - 22 => loadLF: loads with a lf, only for the firs layer, old format.
+   * - 3 => lines: lines transmissions with CP model.
+   * - 4 => TF: transformers.
+   * - 5 => WP: Wind Parks.
+   * - 6 => buses: names of the buses (only on top level).
+   * - 7 => lfToSG: lf devices associated to every SG.
+   * - 8 => tfToSG: tf devices associated to every SG.
+   * - 9 => allToSG: lf and tf devices associated to every SG.
+   * - 10 => LF: all the LF devices in the circuit.
+   */
+  //
+  if (deviceType == "PV" || deviceType == 0) {
+    /**
+     ** Parameters - Must be writing equal to the name below.
+     * @param {string} N_PV_arrays - Number of PV arrays.
+     * @param {string or number} N_PV_inServ: Number of PV arrays in service.
+     * @param {string or number} Q_ctrlMode: Q-control mode: Q,V or PF.
+     * @param {string or number} Reactive_ref: Reactive power reference in pu.
+     * @param {string or number} P_ctrlMode: P-control mode: MPPT or Power Control.
+     * @param {string or number} Active_ref: Active power reference in pu.
+     */
+    parseScriptFile("WECC_PVPark_m.dwj");
+    var all_WECC_PV = cct.devices(4, -1, 5, "LibType", "WECC PV park");
+    parseScriptFile("PVPark_m.dwj");
+    var all_std_PV = cct.devices(4, -1, 5, "LibType", "PV park");
+    // Primer caso para cuando hay que cambiar todos los elementos
+    // util para los scopes y observe
+    if (Names == "all") {
+      //*Recorro los PV WECC
+      for (var i = 0; i < all_WECC_PV.length; i++) {
+        var devWECC = all_WECC_PV[i];
+        var oDevWECC_PV = new oDevice_WECC_PV(devWECC);
+        var parameters_map = {
+          "Power": ["SCOPE_Park_P", "SCOPE_Park_Q"],
+          "P": ["SCOPE_Park_P"],
+          "Q": ["SCOPE_Park_Q"],
+          "Id": ["SCOPE_Id"],
+          "Iq": ["SCOPE_Iq"],
+          "PLL_freq": ["SCOPE_PLL_freq"]
+        };
+
+        for (var k = 0; k < Parameters.length; k++) {
+          var param = Parameters[k];
+          var value = Values[k] == "on" ? "1" : "0";
+
+          if (parameters_map[param]) {
+            for (var j = 0; j < parameters_map[param].length; j++) {
+              var property = parameters_map[param][j];
+              oDevWECC_PV.Parameters[property] = value;
+            } 
+          }
+        }
+        oDevWECC_PV.SaveData();
+      }
+      for (var i = 0; i < all_std_PV.length; i++) {
+        var devStdPV = all_std_PV[i];
+        var oDevStd_PV = new oDevice_PV(devStdPV);
+        var parameters_map = {
+          "Power": ["SCOPE_Park_P", "SCOPE_Park_Q"],
+          "P": ["SCOPE_Park_P"],
+          "Q": ["SCOPE_Park_Q"],
+          "Id": ["SCOPE_Id"],
+          "Iq": ["SCOPE_Iq"],
+          "PLL_freq": ["SCOPE_PLL_freq"]
+        };
+
+        for (var k = 0; k < Parameters.length; k++) {
+          var param = Parameters[k];
+          var value = Values[k] == "on" ? "1" : "0"; //on or off condition
+
+          if (parameters_map[param]) {
+            for (var j = 0; j < parameters_map[param].length; j++) {
+              var property = parameters_map[param][j];
+              oDevStd_PV.Parameters[property] = value;
+            }
+          }
+        }
+        oDevStd_PV.SaveData();
+      }
+    } else {
+      //* Caso para modificar parametros
+      writeln(
+        "############################################################################"
+      );
+      writeln("Begin to change the parameters of the PV devices\n");
+      var count = 0;
+      // * Recorro todos los nombres que quiero cambiar
+      for (var i = 0; i < Names.length; i++) {
+        //* Recorro todos los WECC del circuito
+        for (var j = 0; j < all_WECC_PV.length; j++) {
+          var devWECC = all_WECC_PV[j];
+          // * Si encuentra el nombre entonces comienzo a hacer los cambios
+          if (devWECC.getAttribute("Name") == Names[i]) {
+            var oDevWECC_PV = new oDevice_WECC_PV(devWECC);
+            // * voy a buscar el nombre de cada parametro
+            for (var k = 0; k < Parameters.length; k++) {
+              if (Parameters[k] == "N_PV_arrays") {
+                // * El valor que busco esta en el indice del nombre y en la posicion del parametro
+                oDevWECC_PV.Parameters.Ngen = String(Values[i][k]);
+              } else if (Parameters[k] == "N_PV_inServ") {
+                oDevWECC_PV.Parameters.Ngen_in_service = String(Values[i][k]);
+              } else if (Parameters[k] == "Q_ctrlMode") {
+                oDevWECC_PV.Parameters.QC_select = String(Values[i][k]);
+              } else if (Parameters[k] == "Reactive_ref") {
+                oDevWECC_PV.Parameters.Qpoi_pu = String(Values[i][k]);
+              } else if (Parameters[k] == "P_ctrlMode") {
+                oDevWECC_PV.Parameters.PC_select = String(Values[i][k]);
+              } else if (Parameters[k] == "Active_ref") {
+                oDevWECC_PV.Parameters.Pref_poi = String(Values[i][k]);
+              }
+            }
+            oDevWECC_PV.SaveData();
+            writeln(devWECC.getAttribute("Name") + "PV device modified");
+            count += 1;
+            break;
+          }
+        }
+        for (var j = 0; j < all_std_PV.length; j++) {
+          var devStdPV = all_std_PV[j];
+          // * Si encuentra el nombre entonces comienzo a hacer los cambios
+          if (devStdPV.getAttribute("Name") == Names[i]) {
+            var oDevStd_PV = new oDevice_PV(devStdPV);
+            // * voy a buscar el nombre de cada parametro
+            for (var k = 0; k < Parameters.length; k++) {
+              if (Parameters[k] == "N_PV_arrays") {
+                // * El valor que busco esta en el indice del nombre y en la posicion del parametro
+                oDevStd_PV.Parameters.Ngen = String(Values[i][k]);
+              } else if (Parameters[k] == "N_PV_inServ") {
+                oDevStd_PV.Parameters.Ngen_in_service = String(Values[i][k]);
+              } else if (Parameters[k] == "Q_ctrlMode") {
+                oDevStd_PV.Parameters.QC_select = String(Values[i][k]);
+              } else if (Parameters[k] == "Reactive_ref") {
+                oDevStd_PV.Parameters.Qpoi_pu = String(Values[i][k]);
+              } else if (Parameters[k] == "P_ctrlMode") {
+                oDevStd_PV.Parameters.PC_select = String(Values[i][k]);
+              } else if (Parameters[k] == "Active_ref") {
+                oDevStd_PV.Parameters.Pref_poi = String(Values[i][k]);
+              }
+            }
+            oDevStd_PV.SaveData();
+            writeln(devStdPV.getAttribute("Name") + "PV device modified");
+            count += 1;
+            break;
+          }
+        }
+      }
+      writeln("\n" + count + "PV devices were modified");
+      writeln("Changes in parameters of the PV Bus devices were completed");
+      writeln(
+        "############################################################################"
+      );
+    }
+  } else if (deviceType == "SG" || deviceType == 1) {
+    parseScriptFile("machine_sm_m.dwj");
+    var all_SG1 = cct.devices(4, -1, 5, "LibType", "synchronous machine");
+    var all_SG2 = cct.devices(4, -1, 5, "LibType", "Synchronous");
+    // Concatenar ambos resultados en un solo array
+
+    // Crear un nuevo array vacío
+    var all_SG = [];
+    // Agregar elementos de all_SG1
+    for (var i = 0; i < all_SG1.length; i++) {
+      all_SG.push(all_SG1[i]);
+    }
+
+    // Agregar elementos de all_SG2
+    for (var j = 0; j < all_SG2.length; j++) {
+      all_SG.push(all_SG2[j]);
+    }
+
+    // Primer caso para cuando hay que cambiar todos los elementos
+    // util para los scopes y observe
+    if (Names == "all") {
+      for (var i = 0; i < all_SG.length; i++) {
+        var devSG = all_SG[i];
+        var oDevSG = new oDevice_SM(devSG);
+        for (var k = 0; k < Parameters.length; k++) {
+          //TODO VER QUE DIFERENCIA TIENE EL OBSERVE CON EL SCOPE
+          if (Parameters[k] == "PowerAngle") {
+            // Para prender Observe "2", el scope "1"
+            if (Values[k] == "on") {
+              oDevSG.PowerAng_s = "1";
+              oDevSG.PowerAng_o = "2";
+            } else if (Values[k] == "off") {
+              oDevSG.PowerAng_s = "0";
+              oDevSG.PowerAng_o = "0";
+            }
+          }
+          oDevSG.SaveData();
+          if (Parameters[k] == "theta_angle") {
+            if (Values[k] == "on") {
+              var model_data = devSG.getAttribute("ModelData");
+              var TMPArray = SPArray();
+              TMPArray.splitParams(model_data);
+              new_model_data = "";
+              attribute_to_modify = 0;
+              for (var j = 0; j < TMPArray.length - 1; j++) {
+                TMPArray1 = TMPArray[j].split("MSu");
+                if (TMPArray[j].length != TMPArray1[0].length) {
+                  attribute_to_modify = j;
+                }
+              }
+              if (attribute_to_modify != 0) {
+                TMPArray2 = TMPArray[attribute_to_modify].split("\n");
+                // TMPArray2[0] = "1 4 0 0 0 6780"
+                TMPArray2[1] = "2 3 0 0 0";
+                TMPArray2[2] = "MSu=1 1 1";
+                TMPArray[attribute_to_modify] =
+                  TMPArray2[0] + "\n" + TMPArray2[1] + "\n" + TMPArray2[2];
+              }
+              new_model_data +=
+                TMPArray[0] +
+                "," +
+                TMPArray[1] +
+                ",\n" +
+                TMPArray[2] +
+                "," +
+                TMPArray[3] +
+                ",\n";
+              for (var l = 4; l < TMPArray.length - 1; l++) {
+                new_model_data += TMPArray[l] + ",\n";
+              }
+              TMPArray_final = TMPArray[TMPArray.length - 1].split("=")[0];
+              if (TMPArray_final == "Ref") {
+                new_model_data += TMPArray[TMPArray.length - 1];
+              } else {
+                new_model_data += TMPArray[TMPArray.length - 1] + ",";
+              }
+
+              // var model_data_splited = model_data.split(",");
+              // var part_1 = model_data_splited.slice(0, 13).join("\n");
+              // var part_2 = "2 3 0 0 0"; // 2 for Scope theta, 3 for Scope+Observe omega
+              // var part_3 = "MSu=1 1 1,";
+              // var part_4 = model_data_splited
+              //   .slice(15, model_data_splited.length)
+              //   .join("\n");
+              // var new_model_data =
+              //   part_1 + "\n" + part_2 + "\n" + part_3 + "\n" + part_4;
+
+              devSG.setAttribute("ModelData", new_model_data);
+            } else if (Values[k] == "off") {
+              var model_data = devSG.getAttribute("ModelData");
+
+              var TMPArray = SPArray();
+              TMPArray.splitParams(model_data);
+              new_model_data = "";
+              attribute_to_modify = 0;
+              for (var j = 0; j < TMPArray.length - 1; j++) {
+                TMPArray1 = TMPArray[j].split("MSu");
+                if (TMPArray[j].length != TMPArray1[0].length) {
+                  attribute_to_modify = j;
+                }
+              }
+              if (attribute_to_modify != 0) {
+                TMPArray2 = TMPArray[attribute_to_modify].split("\n");
+                // TMPArray2[0] = "1 4 0 0 0 6780"
+                TMPArray2[1] = "0 1 0 0 0";
+                TMPArray2[2] = "MSu=1 1 1";
+                TMPArray[attribute_to_modify] =
+                  TMPArray2[0] + "\n" + TMPArray2[1] + "\n" + TMPArray2[2];
+              }
+              new_model_data +=
+                TMPArray[0] +
+                "," +
+                TMPArray[1] +
+                ",\n" +
+                TMPArray[2] +
+                "," +
+                TMPArray[3] +
+                ",\n";
+              for (var l = 4; l < TMPArray.length - 1; l++) {
+                new_model_data += TMPArray[l] + ",\n";
+              }
+              TMPArray_final = TMPArray[TMPArray.length - 1].split("=")[0];
+              if (TMPArray_final == "Ref") {
+                new_model_data += TMPArray[TMPArray.length - 1];
+              } else {
+                new_model_data += TMPArray[TMPArray.length - 1] + ",";
+              }
+              // var model_data_splited = model_data.split("\n");
+              // var part_1 = model_data_splited.slice(0, 13).join("\n");
+              // var part_2 = "0 1 0 0 0,"; // remain omega observe
+              // var part_3 = "MSu=1 1 1,";
+              // var part_4 = model_data_splited
+              //   .slice(15, model_data_splited.length)
+              //   .join("\n");
+              // var new_model_data =
+              //   part_1 + "\n" + part_2 + "\n" + part_3 + "\n" + part_4;
+
+              devSG.setAttribute("ModelData", new_model_data);
+            }
+          } else if (Parameters[k] == "omega") {
+            if (Values[k] == "on") {
+              var model_data = devSG.getAttribute("ModelData");
+              var model_data_splited = model_data.split("\n");
+              var part_1 = model_data_splited.slice(0, 13).join("\n");
+              var part_2 = "0 3 0 0 0"; // 3 for Scope+Observe omega
+              var part_3 = "MSu=1 1 1";
+              var part_4 = model_data_splited
+                .slice(15, model_data_splited.length)
+                .join("\n");
+              var new_model_data =
+                part_1 + "\n" + part_2 + "\n" + part_3 + "\n" + part_4;
+              devSG.setAttribute("ModelData", new_model_data);
+            } else if (Values[k] == "off") {
+              var model_data = devSG.getAttribute("ModelData");
+              var model_data_splited = model_data.split("\n");
+              var part_1 = model_data_splited.slice(0, 13).join("\n");
+              var part_2 = "0 1 0 0 0"; // remain omega observe
+              var part_3 = "MSu=1 1 1";
+              var part_4 = model_data_splited
+                .slice(15, model_data_splited.length)
+                .join("\n");
+              var new_model_data =
+                part_1 + "\n" + part_2 + "\n" + part_3 + "\n" + part_4;
+              devSG.setAttribute("ModelData", new_model_data);
+            }
+          }
+        }
+        var oDevSG = new oDevice_SM(devSG);
+        // alert((model_data = devSG.getAttribute("ModelData")));
+        oDevSG.SaveData();
+      }
+    }
+  } else if (deviceType == "loadLF" || deviceType == 2) {
+    /**
+     ** Parameters - Must be writing equal to the name below.
+     * @param {string} Nominal_Voltage- In kVRMSLL.
+     * @param {string or number} Voltage: Voltage in kVRMSLL
+     * @param {string or number} P_loadLF: Active Power in MW.
+     * @param {string or number} Q_loadLF: Reactive Power in MVAR
+     * @param {string or number} Np: dependency of load active power on voltage (0,1 or 2).
+     * @param {string or number} Nq: dependency of load reactive power on voltage (0,1 or 2).
+     */
+    parseScriptFile("pqload_m.dwj");
+    var all_LoadLF = cct.devices(
+      4,
+      -1,
+      6,
+      "LibType",
+      "PQ load with load-flow (LF)"
+    );
+    var all_LoadLF_YG = cct.devices(
+      4,
+      -1,
+      6,
+      "LibType",
+      "PQ load Yg with load-flow (LF)"
+    );
+    // Primer caso es cuando hay algun error en NP o NQ (permite cambiar
+    // los parametros de todos los loadLF)
+    if (Names == "all") {
+      for (var i = 0; i < all_LoadLF.length; i++) {
+        var devLoadLF = all_LoadLF[i];
+        var oDevLoadLF = new oDevice_pqload(devLoadLF);
+        for (var k = 0; k < Parameters.length; k++) {
+          if (Parameters[k] == "Np") {
+            oDevLoadLF.Parameters.Np_A = String(Values[k]);
+            oDevLoadLF.SaveData();
+          } else if (Parameters[k] == "Nq") {
+            oDevLoadLF.Parameters.Nq_A = String(Values[k]);
+            oDevLoadLF.SaveData();
+          }
+        }
+      }
+    } else if (typeof Names == "object") {
+      // Sino es el caso entonces procedo a modificar los parametros de los loadLF
+      // * Recorro todos los nombres que quiero cambiar
+      for (var i = 0; i < Names.length; i++) {
+        // * Recorro todos los loadLF del circuito
+        for (var j = 0; j < all_LoadLF.length; j++) {
+          var devLoadLF = all_LoadLF[j];
+          //* Si encuentra el nombre entonces comienzo a hacer los cambios
+          if (devLoadLF.getAttribute("Name") == Names[i]) {
+            var oDevLoadLF = new oDevice_pqload(devLoadLF);
+            // * voy a buscar el nombre de cada parametro
+            for (var k = 0; k < Parameters.length; k++) {
+              if (Parameters[k] == "Nominal_Voltage") {
+                oDevLoadLF.Parameters.voltage_A = String(Values[i][k]);
+              } else if (Parameters[k] == "P_loadLF") {
+                oDevLoadLF.Parameters.activePower_A = String(Values[i][k]);
+                oDevLoadLF.Parameters.activePower_B = String(Values[i][k]);
+                oDevLoadLF.Parameters.activePower_C = String(Values[i][k]);
+              } else if (Parameters[k] == "Q_loadLF") {
+                oDevLoadLF.Parameters.reactivePower_A = String(Values[i][k]);
+                oDevLoadLF.Parameters.reactivePower_B = String(Values[i][k]);
+                oDevLoadLF.Parameters.reactivePower_C = String(Values[i][k]);
+              } else if (Parameters[k] == "Np") {
+                oDevLoadLF.Parameters.Np_A = String(Values[i][k]);
+              } else if (Parameters[k] == "Nq") {
+                oDevLoadLF.Parameters.Nq_A = String(Values[i][k]);
+              }
+            }
+            oDevLoadLF.SaveData();
+            break;
+          }
+        }
+        // * Si no lo encontro en los PQ load LF entonces lo busca en los PQ load YG
+        for (var j = 0; j < all_LoadLF_YG.length; j++) {
+          var devLoadLF = all_LoadLF_YG[j];
+          //* Si encuentra el nombre entonces comienzo a hacer los cambios
+          if (devLoadLF.getAttribute("Name") == Names[i]) {
+            var oDevLoadLF = new oDevice_pqload(devLoadLF);
+            // * voy a buscar el nombre de cada parametro
+            for (var k = 0; k < Parameters.length; k++) {
+              if (Parameters[k] == "Nominal_Voltage") {
+                oDevLoadLF.Parameters.voltage_A = String(Values[i][k]);
+              } else if (Parameters[k] == "P_loadLF") {
+                oDevLoadLF.Parameters.activePower_A = String(Values[i][k]);
+                oDevLoadLF.Parameters.activePower_B = String(Values[i][k]);
+                oDevLoadLF.Parameters.activePower_C = String(Values[i][k]);
+              } else if (Parameters[k] == "Q_loadLF") {
+                oDevLoadLF.Parameters.reactivePower_A = String(Values[i][k]);
+                oDevLoadLF.Parameters.reactivePower_B = String(Values[i][k]);
+                oDevLoadLF.Parameters.reactivePower_C = String(Values[i][k]);
+              } else if (Parameters[k] == "Np") {
+                oDevLoadLF.Parameters.Np_A = String(Values[i][k]);
+              } else if (Parameters[k] == "Nq") {
+                oDevLoadLF.Parameters.Nq_A = String(Values[i][k]);
+              }
+            }
+            oDevLoadLF.SaveData();
+            break;
+          }
+        }
+      }
+    }
+  } else if (deviceType == "loadLF2" || deviceType == 22) {
+    /**
+     ** Parameters - Must be writing equal to the name below.
+     * @param {string} Nominal_Voltage- In kVRMSLL.
+     * @param {string or number} Voltage: Voltage in kVRMSLL
+     * @param {string or number} P_loadLF: Active Power in MW.
+     * @param {string or number} Q_loadLF: Reactive Power in MVAR
+     * @param {string or number} Np: dependency of load active power on voltage (0,1 or 2).
+     * @param {string or number} Nq: dependency of load reactive power on voltage (0,1 or 2).
+     */
+    parseScriptFile("pqload_m.dwj");
+    var all_LoadLF = cct.devices(
+      4,
+      -1,
+      6,
+      "LibType",
+      "PQ load with load-flow (LF)"
+    );
+    var all_LoadLF_YG = cct.devices(
+      4,
+      -1,
+      6,
+      "LibType",
+      "PQ load Yg with load-flow (LF)"
+    );
+    // Primer caso es cuando hay algun error en NP o NQ (permite cambiar
+    // los parametros de todos los loadLF)
+    if (Names == "all") {
+      for (var i = 0; i < all_LoadLF.length; i++) {
+        var devLoadLF = all_LoadLF[i];
+        var oDevLoadLF = new oDevice_pqload(devLoadLF);
+        for (var k = 0; k < Parameters.length; k++) {
+          if (Parameters[k] == "Np") {
+            oDevLoadLF.Parameters.Np_A = String(Values[k]);
+            oDevLoadLF.SaveData();
+          } else if (Parameters[k] == "Nq") {
+            oDevLoadLF.Parameters.Nq_A = String(Values[k]);
+            oDevLoadLF.SaveData();
+          }
+        }
+      }
+    } else if (typeof Names == "object") {
+      // Sino es el caso entonces procedo a modificar los parametros de los loadLF
+      // * Recorro todos los nombres que quiero cambiar
+      for (var i = 0; i < Names.length; i++) {
+        // * Recorro todos los loadLF del circuito
+        for (var j = 0; j < all_LoadLF.length; j++) {
+          var devLoadLF = all_LoadLF[j];
+          //* Si encuentra el nombre entonces comienzo a hacer los cambios
+          if (devLoadLF.getAttribute("Name") == Names[i]) {
+            var oDevLoadLF = new oDevice_pqload(devLoadLF);
+            // * voy a buscar el nombre de cada parametro
+            for (var k = 0; k < Parameters.length; k++) {
+              if (Parameters[k] == "Nominal_Voltage") {
+                oDevLoadLF.Parameters.voltage_A = String(Values[i][k]);
+              } else if (Parameters[k] == "P_loadLF") {
+                oDevLoadLF.Parameters.activePower_A = String(Values[i][k]);
+              } else if (Parameters[k] == "Q_loadLF") {
+                oDevLoadLF.Parameters.reactivePower_A = String(Values[i][k]);
+              } else if (Parameters[k] == "Np") {
+                oDevLoadLF.Parameters.Np_A = String(Values[i][k]);
+              } else if (Parameters[k] == "Nq") {
+                oDevLoadLF.Parameters.Nq_A = String(Values[i][k]);
+              }
+            }
+            oDevLoadLF.SaveData();
+            break;
+          }
+        }
+        // * Si no lo encontro en los PQ load LF entonces lo busca en los PQ load YG
+        for (var j = 0; j < all_LoadLF_YG.length; j++) {
+          var devLoadLF = all_LoadLF_YG[j];
+          //* Si encuentra el nombre entonces comienzo a hacer los cambios
+          if (devLoadLF.getAttribute("Name") == Names[i]) {
+            var oDevLoadLF = new oDevice_pqload(devLoadLF);
+            // * voy a buscar el nombre de cada parametro
+            for (var k = 0; k < Parameters.length; k++) {
+              if (Parameters[k] == "Nominal_Voltage") {
+                oDevLoadLF.Parameters.voltage_A = String(Values[i][k]);
+              } else if (Parameters[k] == "P_loadLF") {
+                oDevLoadLF.Parameters.activePower_A = String(Values[i][k]);
+              } else if (Parameters[k] == "Q_loadLF") {
+                oDevLoadLF.Parameters.reactivePower_A = String(Values[i][k]);
+              } else if (Parameters[k] == "Np") {
+                oDevLoadLF.Parameters.Np_A = String(Values[i][k]);
+              } else if (Parameters[k] == "Nq") {
+                oDevLoadLF.Parameters.Nq_A = String(Values[i][k]);
+              }
+            }
+            oDevLoadLF.SaveData();
+            break;
+          }
+        }
+      }
+    }
+  } else if (deviceType == "WP" || deviceType == 5) {
+    /**
+     ** Parameters - Must be writing equal to the name below.
+     * @param {string} N_wind_turbines - Number of PV arrays.
+     * @param {string or number} N_WT_inServ: Number of PV arrays in service.
+     * @param {string or number} Q_ctrlMode: Q-control mode: Q,V or PF.
+     * @param {string or number} Reactive_ref: Reactive power reference in pu.
+     * @param {string or number} Active_ref: Active power reference in pu.
+     * @param {string or number} Wind_speed: Mean wind speed. (no se ha agregado)
+     */
+    parseScriptFile("WECC_WP_m.dwj");
+    var all_WECC_WP_1 = cct.devices(4, -1, 5, "LibType", "WECC WP"); //TODO concat this two list and try with only 1 for-loop
+    var all_WECC_WP_2 = cct.devices(4, -1, 5, "LibType", "WECC Wind park"); //change name in new versions
+    var all_WECC_WP = []; // only one array
+    for (var i = 0; i < all_WECC_WP_1.length; i++) {
+      all_WECC_WP.push(all_WECC_WP_1[i]);
+    }
+    for (var j = 0; j < all_WECC_WP_2.length; j++) {
+      all_WECC_WP.push(all_WECC_WP_2[j]);
+    }
+    parseScriptFile("WP_FC_m.dwj");
+    var all_WP_FC = cct.devices(4, -1, 5, "LibType", "FC Wind park");
+    parseScriptFile("WP_DFIG_m.dwj");
+    var all_WP_DFIG = cct.devices(4, -1, 5, "LibType", "DFIG Wind park");
+    // Primer caso para cuando hay que cambiar todos los elementos
+    // util para los scopes y observe
+    if (Names == "all") {
+      for (var i = 0; i < all_WECC_WP.length; i++) {
+        var devWECC = all_WECC_WP[i];
+        var oDevWECC_WP = new oDevice_WECC_WP(devWECC);
+        var parameters_map = {
+          "Power": ["SCOPE_Park_P", "SCOPE_Park_Q"],
+          "P": ["SCOPE_Park_P"],
+          "Q": ["SCOPE_Park_Q"],
+          "Id": ["SCOPE_Id"],
+          "Iq": ["SCOPE_Iq"],
+          "PLL_freq": ["SCOPE_PLL_freq"]
+        };
+
+        for (var k = 0; k < Parameters.length; k++) {
+          var param = Parameters[k];
+          var value = Values[k] == "on" ? "1" : "0";
+
+          if (parameters_map[param]) {
+            for (var j = 0; j < parameters_map[param].length; j++) {
+              var property = parameters_map[param][j];
+              oDevWECC_WP.Parameters[property] = value;
+            }
+          }
+        }
+        oDevWECC_WP.SaveData();
+      }
+      for (var i = 0; i < all_WECC_WP_2.length; i++) {
+        var devWECC = all_WECC_WP_2[i];
+        var oDevWECC_WP = new oDevice_WECC_WP(devWECC);
+        var parameters_map = {
+          "Power": ["SCOPE_Park_P", "SCOPE_Park_Q"],
+          "P": ["SCOPE_Park_P"],
+          "Q": ["SCOPE_Park_Q"],
+          "Id": ["SCOPE_Id"],
+          "Iq": ["SCOPE_Iq"],
+          "PLL_freq": ["SCOPE_PLL_freq"]
+        };
+
+        for (var k = 0; k < Parameters.length; k++) {
+          var param = Parameters[k];
+          var value = Values[k] == "on" ? "1" : "0";
+
+          if (parameters_map[param]) {
+            for (var j = 0; j < parameters_map[param].length; j++) {
+              var property = parameters_map[param][j];
+              oDevWECC_WP.Parameters[property] = value;
+            }
+          }
+        }
+        oDevWECC_WP.SaveData();
+      }
+      for (var i = 0; i < all_WP_FC.length; i++) {
+        var devWP_FC = all_WP_FC[i];
+        var oDevWP_FC = new oDevice_WP_FC(devWP_FC);
+        var parameters_map = {
+          "Power": ["SCOPE_Park_P", "SCOPE_Park_Q"],
+          "P": ["SCOPE_Park_P"],
+          "Q": ["SCOPE_Park_Q"],
+          "Id": ["SCOPE_Id"],
+          "Iq": ["SCOPE_Iq"],
+          "PLL_freq": ["SCOPE_PLL_freq"]
+        };
+
+        for (var k = 0; k < Parameters.length; k++) {
+          var param = Parameters[k];
+          var value = Values[k] == "on" ? "1" : "0";
+
+          if (parameters_map[param]) {
+            for (var j = 0; j < parameters_map[param].length; j++) {
+              var property = parameters_map[param][j];
+              oDevWP_FC.Parameters[property] = value;
+            }
+          }
+        }
+        oDevWP_FC.SaveData();
+      }
+    } else {
+      // * Recorro todos los nombres que quiero cambiar
+      for (var i = 0; i < Names.length; i++) {
+        var found = false; // Esta variable indica si encontramos el nombre en los bucles anteriores
+        //* Recorro todos los WECC del circuito
+        for (var j = 0; j < all_WECC_WP.length; j++) {
+          var devWECC = all_WECC_WP[j];
+          // * Si encuentra el nombre entonces comienzo a hacer los cambios
+          if (devWECC.getAttribute("Name") == Names[i]) {
+            var oDevWECC_WP = new oDevice_WECC_WP(devWECC);
+            // * voy a buscar el nombre de cada parametro
+            for (var k = 0; k < Parameters.length; k++) {
+              if (Parameters[k] == "N_wind_turbines") {
+                // * El valor que busco esta en el indice del nombre y en la posicion del parametro
+                oDevWECC_WP.Parameters.Ngen = String(Values[i][k]);
+              } else if (Parameters[k] == "N_WT_inServ") {
+                oDevWECC_WP.Parameters.Ngen_in_service = String(Values[i][k]);
+              } else if (Parameters[k] == "Q_ctrlMode") {
+                oDevWECC_WP.Parameters.QC_select = String(Values[i][k]);
+              } else if (Parameters[k] == "Reactive_ref") {
+                oDevWECC_WP.Parameters.Qpoi_pu = String(Values[i][k]);
+              } else if (Parameters[k] == "Active_ref") {
+                oDevWECC_WP.Parameters.Pref_poi = String(Values[i][k]);
+              }
+            }
+            oDevWECC_WP.SaveData();
+            found = true;
+            break;
+          }
+        }
+        if (!found) {
+          //si aún no enuentro elnombre busco en FC
+          //* Recorro todos los FC del circuito
+          for (var j = 0; j < all_WP_FC.length; j++) {
+            var devWP_FC = all_WP_FC[j];
+            // * Si encuentra el nombre entonces comienzo a hacer los cambios
+            if (devWP_FC.getAttribute("Name") == Names[i]) {
+              var oDevWP_FC = new oDevice_WP_FC(devWP_FC);
+              // * voy a buscar el nombre de cada parametro
+              for (var k = 0; k < Parameters.length; k++) {
+                if (Parameters[k] == "N_PV_arrays") {
+                  // * El valor que busco esta en el indice del nombre y en la posicion del parametro
+                  oDevWP_FC.Parameters.Ngen = String(Values[i][k]);
+                } else if (Parameters[k] == "N_PV_inServ") {
+                  oDevWP_FC.Parameters.Ngen_in_service = String(Values[i][k]);
+                } else if (Parameters[k] == "Q_ctrlMode") {
+                  oDevWP_FC.Parameters.QC_select = String(Values[i][k]);
+                } else if (Parameters[k] == "Reactive_ref") {
+                  oDevWP_FC.Parameters.Qpoi_pu = String(Values[i][k]);
+                } else if (Parameters[k] == "Active_ref") {
+                  oDevWP_FC.Parameters.Pgen = String(Values[i][k]);
+                } else if (Parameters[k] == "Wind_speed") {
+                  oDevWP_FC.Parameters.Mean_wind_speed = String(Values[i][k]);
+                }
+              }
+              oDevWP_FC.SaveData();
+              break;
+            }
+          }
+        }
+        //*TODO  Recorro todos los DFIG del circuito (agregar a futuro)
+      }
+    }
+  } else if (deviceType == "LF" || deviceType == 10) {
+    /**
+     ** Parameters - Must be writing equal to the name below.
+     * @param {string} BusType - it can be PV or PQ.
+     * @param {string or number} Voltage: Voltage in kVRMSLL.
+     * @param {string or number} P: Active Power in MW.
+     * @param {string or number} Q_set: Reactive Power in MVAR
+     * @param {string or number} Qmax: Max limit of Reactive Power in MVAR.
+     * @param {string or number} Qmin: Min limit of Reactive Power in MVAR.
+     */
+    parseScriptFile("load_flow_bus_m.dwj");
+    var all_LF = cct.devices(4, -1, 5, "LibType", "Load-Flow Bus");
+    // * Recorro todos los nombres que quiero cambiar
+    writeln(
+      "############################################################################"
+    );
+    writeln("Begin to change the parameters of the Load-Flow Bus devices\n");
+    for (var i = 0; i < Names.length; i++) {
+      //* Recorro todos los LF del circuito
+      for (var j = 0; j < all_LF.length; j++) {
+        var devLF = all_LF[j];
+        // * Si encuentra el nombre entonces comienzo a hacer los cambios
+        if (devLF.getAttribute("Name") == Names[i]) {
+          var oDevLF = new oDevice_Load_flow_bus(devLF);
+          // * voy a buscar el nombre de cada parametro
+          for (var k = 0; k < Parameters.length; k++) {
+            if (Parameters[k] == "BusType") {
+              // * El valor que busco esta en el indice del nombre y en la posicion del parametro
+              oDevLF.Bus_Type = String(Values[i][k]);
+            } else if (Parameters[k] == "Voltage") {
+              oDevLF.Voltage_Slack = String(Values[i][k]);
+            } else if (Parameters[k] == "P") {
+              oDevLF.P_set = String(Values[i][k]);
+            } else if (Parameters[k] == "Qset") {
+              oDevLF.Q_set = String(Values[i][k]);
+            } else if (Parameters[k] == "Qmax") {
+              oDevLF.Q_max = String(Values[i][k]);
+            } else if (Parameters[k] == "Qmin") {
+              oDevLF.Q_min = String(Values[i][k]);
+            }
+          }
+          oDevLF.SaveData();
+          break;
+        }
+      }
+    }
+    writeln(
+      "Changes in parameters of the Load-Flow Bus devices asoociated to the SG were completed"
+    );
+    writeln(Names.length + " Load-Flow Bus devices were modified");
+    writeln(
+      "############################################################################"
+    );
+  }
+}

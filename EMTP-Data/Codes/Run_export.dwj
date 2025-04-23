@@ -1,0 +1,149 @@
+// ----- Previo : Importando Codigos
+
+parseScriptFile("AllCodes\\StateDatav2.dwj");
+parseScriptFile("AllCodes\\Grid_all_Data.dwj");
+parseScriptFile("AllCodes\\Load_OP_point.dwj");
+parseScriptFile("AllCodes\\ChangeData.dwj");
+parseScriptFile("AllCodes\\OutputFile.dwj");
+parseScriptFile("AllCodes\\Switch.dwj")
+parseScriptFile("AllCodes\\InterpreteFile.dwj")
+parseScriptFile("AllCodes\\ReturnFileContent.dwj")
+//parseScriptFile("changeValuesInBlackBoxTable.dwj")
+//------ Definiendo rutas
+
+//var pathData1 =  'C:\\Users\\fabian.medina\\Documents\\GitHub\\EMTP-Scripts\\Draft Codes\\EMTP_Codes-Fabi';
+//var pathData1 = 'C:\\Users\\fabian.medina\\OneDrive - Coordinador El\u00e9ctrico Nacional\\Escritorio\\CEN_Fabian\\Codigos\\EMTP-Scripts\\Draft Codes\\EMTP_Codes-Fabi'
+//ConvertSlashes = true
+//var pathData1 =  'C:/Users/fabian.medina/Documents/GitHub/EMTP-Scripts/Draft Codes/EMTP_Codes-Fabi';
+
+
+
+
+//var pathData1 = 'C:\\Users\\fabian.medina\\OneDrive - Coordinador El\u00e9ctrico Nacional\\Escritorio\\CEN_Fabian\\Codigos\\EMTP-Scripts\\EMTP-Data\\Codes'
+//var pathData2 ='\\Data_export';
+var pathData1= cct.getAttribute('CctPath')
+var pathData2 ='\Data_export';
+var pathData = pathData1+pathData2
+
+
+var cct = currentCircuit;
+
+SwitchConsole=SPRichConsole('Data EXPORT','Data EXPORT')
+SwitchConsole.clear
+//  ---------------------------------- SACANDO DATOS------------------------------------------------------------------------
+
+//var data_switch = SwitchData();
+//outputFile(data_switch, "data_switch_", pathData);
+SwitchConsole.setFont("Arial Blue 14 white")
+SwitchConsole.writeln('#-------------------------------------------------')
+SwitchConsole.writeln('Se inicia el proceso de extraccion de datos')
+SwitchConsole.writeln('#-------------------------------------------------')
+SwitchConsole.writeln('                                           ')
+SwitchConsole.writeln('Cargando........') 
+SwitchConsole.writeln('                                           ')
+
+
+
+//writeln('Se inicia el proceso de extracion de datos')
+// //* Saca todos los datos de los PV parks
+//var data_PV = gridAllData("PV");
+
+
+var data_PV = PVData();
+outputFile(data_PV, "data_PV_", pathData);
+SwitchConsole.writeln('PV Data Check')
+
+var data_WP = WPData();
+outputFile(data_WP, "data_WP_", pathData);
+SwitchConsole.writeln('WP Data Check')
+
+var data_SG = SGData();
+outputFile(data_SG, "data_SG_", pathData);
+SwitchConsole.writeln('SG Data Check')
+var data_LF = LFData();
+outputFile(data_LF, "data_LF_", pathData);
+SwitchConsole.writeln('LF Data Check')
+
+var data_Load = LoadData();
+outputFile(data_Load, "data_loadLF_", pathData);
+SwitchConsole.writeln('Load Data Check')
+
+var data_TF = TFData();
+outputFile(data_TF, "data_TF_", pathData);
+SwitchConsole.writeln('Transformers Data Check')
+
+SwitchConsole.writeln('')
+SwitchConsole.writeln('#-------------------------------------------------')
+SwitchConsole.writeln('Estado: Proceso Terminado')
+
+
+// ---------------------- SACANDO ESTADOS -----------------------------------------------
+
+// Saca el predespacho de SG,PV,WP, y Reactive compensator ( 0 apagado 1 prendido)
+//ucData(pathData);
+/*
+SwitchConsole.writeln('El proceso de extracion de datos ha terminado')
+
+// //* Saca el predespacho de los PV
+ucData(pathData, "PV");
+SwitchConsole.writeln('PV Estado Check')
+
+// //* Saca el predespacho de los WP
+ucData(pathData, "WP");
+SwitchConsole.writeln('WP Estado Check')
+
+
+// //* Saca el predespacho de los SG
+ucData(pathData, "SG");
+SwitchConsole.writeln('SG Estado Check')
+
+ucData(pathData, "SG2");
+SwitchConsole.writeln('SG2 Estado Check')
+*/
+
+//-------------- Referencias--------------------------------------------------------------------------------------------------------
+//dataPV = "Data_input\\PVData.csv"
+//dataPV = "Data_input\\PV_ref_redespacho.csv"
+//dataWP ="Data_input\\WP_ref_prorrata.csv"
+// arma el punto de operación como input en JS y luego carga los nuevos puntos de operación en EMTP
+//loadOperationPoint(dataPV, 0);
+
+//SwitchConsole.writeln('Se cargan datos')
+//loadOperationPoint(dataWP, 5);
+
+
+
+
+// -----------------antiguo -----------------------------------
+/*
+//var data_allSG = gridAllData("SG");
+//outputFile(data_allSG, "data_allSG_", pathData);
+
+
+// //* Saca todos los datos de los Wind parks
+//var data_WP = gridAllData("WP");
+//outputFile(data_WP, "data_WP_", pathData);
+
+// //* Saca todos los datos de SG
+//var data_allSG = gridAllData("SG");
+//outputFile(data_allSG, "data_allSG_", pathData);
+
+//var data_AllSG2 = gridAllData("SG2");
+//outputFile(data_AllSG2, "data_allSG2_", pathData);
+
+// Saca todos los datos de LF asociados a SG
+
+//var data_lfToSG = gridAllData("lfToSG");
+//outputFile(data_lfToSG, "data_lfToSG_", pathData);
+
+//var data_lfToSG2 = gridAllData("lfToSG2");
+//outputFile(data_lfToSG2, "data_lfToSG2_", pathData);
+
+//* Saca todos los datos de LF que hayan
+//var data_LF = gridAllData(10);
+//outputFile(data_LF, "data_LF_", pathData);
+///* Saca todas las cargas con LF de la primera capa
+//var data_loadLF = gridAllData(2);
+//outputFile(data_loadLF, "data_loadLF_", pathData);
+*/
+

@@ -1,0 +1,53 @@
+
+parseScriptFile("make_file_name.dwj");
+parseScriptFile("program_.dwj");
+parseScriptFile("run_emtp.dwj");
+parseScriptFile("check_my_filename.dwj");
+parseScriptFile("find_data_in_object.dwj");
+parseScriptFile("runLoadFLow.dwj"); //* to use the load flow
+
+var cct = currentCircuit;
+
+
+
+
+
+
+function outputFile(data, namePrefix, exportPath, typeOutputFile) {
+  /**
+   ** Changes the data as specified.
+   * @param {string} data - Names of the devices.
+   * @param {string} typeOutputFile - Type can be "csv" or "txt", csv by default.
+   * @param {string} namePrefix - Its the prefix previous the name of file
+   * by default the name begin with the name of the design (.ecf).
+   * @param {string} exportPath - Optional parameter to specify the export path,
+   * by default its the same of the design.
+   */
+  //
+  // Sanity check for the path
+  if (!exportPath) {
+    exportPath = cct.getAttribute("CctPath");
+  }
+
+  if (exportPath && exportPath.slice(-1) !== "\\") {
+    exportPath += "\\";
+  }
+  // code
+  if (typeOutputFile == "txt" || typeOutputFile == 0) {
+    var filename =
+      (exportPath || cct.getAttribute("CctPath")) +
+      namePrefix +
+      cct.getAttribute("CctName").slice(0, -3) +
+      "txt";
+  } else {
+    var filename =
+      (exportPath || cct.getAttribute("CctPath")) +
+      namePrefix +
+      cct.getAttribute("CctName").slice(0, -3) +
+      "csv";
+  }
+  var output_file = SPFile(filename);
+  output_file.create();
+  output_file.write(data);
+  output_file.close();
+}

@@ -1,0 +1,94 @@
+// Inicializar la consola
+
+
+// Función para listar cargas PQ y su estado (Encendido/Apagado)
+function listarCargasPQ() {
+   
+    // Obtener el circuito actual
+    var cct = currentCircuit();
+    if (!cct) {
+        LoadConsole.setFont("Arial Red 12");
+        LoadConsole.writeln("No hay un circuito abierto actualmente.");
+        return;
+    }
+
+    // Encabezado con formato
+    LoadConsole.setFont("Arial Blue 14 white");
+    LoadConsole.writeln("LISTADO DE CARGAS PQ");
+    
+    // Definimos la fuente para el encabezado y los datos
+    var fontHeaderData = "Arial Blue 12";
+    
+    // Encabezado de columnas
+    LoadConsole.setFont(fontHeaderData);
+    LoadConsole.writeln("Name, Estado, Libtype");
+    
+    // Buscar todas las cargas PQ
+    var cargas = cct.devices();
+    var cargasPQ = [];
+    
+    // Filtrar solo cargas PQ de los tipos especificados
+    for (var i = 0; i < cargas.length; i++) {
+        var libType = cargas[i].getAttribute("LibType");
+        if (libType === "PQ load with load-flow (LF)" || 
+            libType === "PQ load Yg with load-flow (LF)") {
+            cargasPQ.push(cargas[i]);
+        }
+    }
+    
+    // Verificar si se encontraron cargas PQ
+    if (cargasPQ.length == 0) {
+        LoadConsole.setFont("Arial Red 12");
+        LoadConsole.writeln("No se encontraron cargas PQ de los tipos especificados en el circuito.");
+        return;
+    }
+    
+    // Variables para conteo
+    var encendidas = 0;
+    var apagadas = 0;
+    
+    // Recorrer todas las cargas PQ encontradas
+    for (var j = 0; j < cargasPQ.length; j++) {
+        var carga = cargasPQ[j];
+        
+        // Obtener el nombre de la carga
+        var nombre = carga.getAttribute("Name");
+        if (!nombre) nombre = "Carga_" + (j + 1);
+        
+        // Verificar si está excluida - Nueva lógica según lo solicitado
+        var exclude = carga.getAttribute("Exclude");
+        var estado;
+        
+        // Si Exclude es igual a "Ex", está apagada; en cualquier otro caso, está encendida
+        if (exclude === "Ex") {
+            estado = "Apagado";
+            apagadas++;
+        } else {
+            estado = "Encendido";
+            encendidas++;
+        }
+        
+        // Obtener el tipo de librería
+        var libtype = carga.getAttribute("LibType") || "";
+        
+        // Usamos la misma fuente que el encabezado, solo cambiando el color según el estado
+        if (estado === "Encendido") {
+            LoadConsole.setFont("Arial Green 12");
+        } else {
+            LoadConsole.setFont("Arial Red 12");
+        }
+        
+        // Mostrar en la consola con el formato exacto solicitado
+        LoadConsole.writeln(nombre + ", " + estado + ", " + libtype);
+    }
+    
+    // Resumen final
+    LoadConsole.setFont(fontHeaderData);
+    LoadConsole.writeln("\nResumen:");
+    LoadConsole.writeln("Total de cargas PQ: " + cargasPQ.length);
+    LoadConsole.writeln("Cargas encendidas: " + encendidas);
+    LoadConsole.writeln("Cargas apagadas: " + apagadas);
+    
+    return cargasPQ;
+}
+

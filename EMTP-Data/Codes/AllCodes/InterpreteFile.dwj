@@ -1,0 +1,189 @@
+parseScriptFile("make_file_name.dwj");
+parseScriptFile("program_.dwj");
+parseScriptFile("run_emtp.dwj");
+parseScriptFile("check_my_filename.dwj");
+parseScriptFile("find_data_in_object.dwj");
+parseScriptFile("runLoadFLow.dwj"); //* to use the load flow
+
+var cct = currentCircuit;
+
+
+function interpreteFile(fileWithContent, deviceType) {
+  /**
+   ** Interprete info from a file.
+   * @param {object} fileWithContent - Information to interprete.
+   * @param {number} deviceType - Assign a way to interprete info, depends on the application.
+   * - 1 => weccPV: WECC PV parks.
+   * - 2 => For wecc_park_generator function.
+   * - 3 => anyPV: PV parks.
+   * - 4 => SG: Synchronous Generators.
+   * - 5 => lfToSG: lf devices associated to every SG.
+   * - 6 => tfToSG: tf devices associated to every SG.
+   * - 7 => allToSG: lf and tf devices associated to every SG.
+   * - 8 => loadLF: loads with a lf, only for the firs layer.
+   * - 9 => lines: lines transmissions with CP model.
+   * - 10 =>
+   */
+  //
+
+  if (deviceType == 1) {
+    // FOR TEMPLATE CSV TO LOAD SCADA DATA
+    var separator = "\n"; //the separator is the new line
+    var Elements = fileWithContent.split(separator);
+    //TODO for load operation point from csv
+    //initialization of the attributes this function returns
+    this.names = [];
+    this.attributes = [];
+    this.values = [];
+
+    var LinesContent;
+    // Obtain names
+    for (var nElement = 1; nElement < Elements.length; nElement++) {
+      LinesContent = Elements[nElement].split(","); // split by ,
+      this.names.push(LinesContent[0]); // save the name
+    }
+    // Obtain attributes
+    for (var nElement = 0; nElement < 1; nElement++) {
+      LinesContent = Elements[nElement].split(","); // split by ,
+      for (var i = 1; i < LinesContent.length; i++) {
+        this.attributes.push(LinesContent[i]);
+      }
+    }
+    // Obtain values
+    for (var nElement = 1; nElement < Elements.length; nElement++) {
+      LinesContent = Elements[nElement].split(","); // split by ,
+      var values_list = [];
+      for (var i = 1; i < LinesContent.length; i++) {
+        values_list.push(LinesContent[i]);
+      }
+      this.values.push(values_list);
+    }
+  } else if (deviceType == 2) {
+    var separators = "\n"; //double space for separator
+    var Elements = fileWithContent.split(separators); //Make sure there is no space before or after ***
+    //Special case wecc_park_generator function.
+    //initialization of the attribute this function returns
+    this.header_dict = {};
+    this.data = [];
+    // fill the parameters to assign
+    var header_element = Elements[0].split(","); //first row is the header
+    // create a dict with the parameters of the wecc
+    for (var nElement = 0; nElement < header_element.length; nElement++) {
+      this.header_dict[header_element[nElement]] = nElement;
+    }
+    // Define the variables to modify
+    var LinesContent;
+    //start from 1 to bypass the first row with headers
+    for (var nElement = 1; nElement < Elements.length - 1; nElement++) {
+      //Return array with elements of the rows
+      LinesContent = Elements[nElement].split(",");
+      this.data.push(LinesContent); //List with values
+    }
+  } else if (deviceType == 5) {
+    var separators = "\n"; //double space for separator
+    var Elements = fileWithParametersContent.split(separators); //Make sure there is no space before or after ***
+    //initialization of the attribute this function returns
+    this.names_LF = [];
+    this.parameters_LF = [];
+    this.values_LF = [];
+
+    var LinesContent;
+    // var LineElements; //Elements in between , in each line1
+    // var LineValues; //Value in each line
+    // Define the variables to modify
+    for (var nElement = 1; nElement < 2; nElement++) {
+      LinesContent = Elements[nElement].split("\n");
+      this.parameters_LF.push(LinesContent[0].split(",")[1]); //BusType
+      this.parameters_LF.push(LinesContent[1].split(",")[1]); //Voltage
+      this.parameters_LF.push(LinesContent[2].split(",")[1]); //P
+      this.parameters_LF.push(LinesContent[3].split(",")[1]); //Qset
+    }
+    //array of arrays with the values to modify
+    for (var nElement = 1; nElement < Elements.length - 1; nElement++) {
+      //Return array which elements are the lines of the file
+      LinesContent = Elements[nElement].split("\n");
+      var aux_values = [];
+      this.names_LF.push(LinesContent[0].split(",")[0]); //First element of the line is the name.
+      //Ex:
+      //this.deviceType = [PQ load with load-flow (LF), Load-Flow Bus, Load-Flow Bus]
+      aux_values.push(LinesContent[0].split(",")[2]); //PV
+      aux_values.push(LinesContent[1].split(",")[2]); //14.076
+      aux_values.push(LinesContent[2].split(",")[2]); //184
+      aux_values.push(LinesContent[3].split(",")[2]); //73.8
+      this.values_LF.push(aux_values);
+      // this.parameters_LF.push(LinesContent[0].split(",")[0]); //Remove whitespaces and split by ,
+      //Ex:
+      //this.Parameters[0][0] = Name
+      //this.Parameters[0][1] = activePower_A
+      //this.Parameters[0][2] = reactivePower_A
+      //             :
+      //this.Parameters[2][0] = Name
+      //this.Parameters[2][1] = P_set
+      //this.Parameters[2][2] = Q_set
+
+      // this.Values.push(LinesContent[2].replace(/\s/g, "").split(",")); //Remove whitespaces and split by ,
+      //Ex:
+      //this.Values[0][0] = Load1
+      //this.Values[0][1] = 20
+      //this.Values[0][1] = 30
+      //             :
+      //this.Values[2][0] = LF2
+      //this.Values[2][1] = 6
+      //this.Values[2][1] = 4
+    }
+  } else if (deviceType == 3) {
+    var separators = "\n"; //double space for separator
+    var Elements = fileWithParametersContent.split(separators); //Make sure there is no space before or after ***
+    //initialization of the attribute this function returns
+    this.names_PV = [];
+    this.parameters_PV = [];
+    this.values_PV = [];
+
+    // fill the parameters to assign
+    var header = Elements[0].split(";");
+    // start from 1 to bypass the name of the device
+    for (var nElement = 1; nElement < header.length; nElement++) {
+      this.parameters_PV.push(header[nElement]);
+    }
+    // this.parameters_LF.push(LinesContent[0].split(",")[1]);
+
+    // var LineElements; //Elements in between , in each line1
+    // var LineValues; //Value in each line
+    // Define the variables to modify
+    var LinesContent;
+    //start from 1 to bypass the first row with headers
+    for (var nElement = 1; nElement < Elements.length - 1; nElement++) {
+      //Return array with elements of the rows
+      LinesContent = Elements[nElement].split(";");
+      this.names_PV.push(LinesContent[0]); //First element of the line is the name.
+      // now i create a aux variable to save an array with the values of the every
+      // parameter associate to the device
+      var aux_values = [];
+      for (var i = 1; i < LinesContent.length; i++) {
+        aux_values.push(LinesContent[i]);
+      }
+      this.values_PV.push(aux_values);
+    }
+  } else if (deviceType == 10) {
+    var separators = "\n"; //double space for separator
+    var Elements = fileWithParametersContent.split(separators); //Make sure there is no space before or after ***
+    //TODO  this is a special case for the read of transfers lines
+    //initialization of the attribute this function returns
+    this.names = [];
+    this.parameters = [];
+    // fill the parameters to assign
+    var header = Elements[0].split(";");
+    // start from 1 to bypass the name of the device
+    for (var nElement = 0; nElement < header.length; nElement++) {
+      this.parameters.push(header[nElement]);
+    }
+    // Define the variables to modify
+    var LinesContent;
+    //start from 1 to bypass the first row with headers
+    for (var nElement = 1; nElement < Elements.length - 1; nElement++) {
+      //Return array with elements of the rows
+      LinesContent = Elements[nElement].split(";");
+      this.names.push(LinesContent[0]); //First element of the line is the name.
+    }
+  }
+}

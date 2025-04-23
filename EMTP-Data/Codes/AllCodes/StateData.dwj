@@ -1,0 +1,995 @@
+parseScriptFile("make_file_name.dwj");
+parseScriptFile("program_.dwj");
+parseScriptFile("run_emtp.dwj");
+parseScriptFile("check_my_filename.dwj");
+parseScriptFile("find_data_in_object.dwj");
+parseScriptFile("runLoadFLow.dwj"); //* to use the load flow
+var cct = currentCircuit;
+
+
+function ucData(pathData, deviceType) {
+  /**
+   ** Obtain commitment state of the selected device type.
+   * @param {string} pathData - Path where the data is saved.
+   * @param {object} deviceType
+   * - "all" (default) => all: .
+   * - 0 => PV: PV parks
+   * - 1 => SG: Synchronous Generators.
+   * - 5 => WP: Wind Parks.
+   * - 11=> Converter: Converters (reactive compensation).
+   */
+  //*Sanity check, if dont put deviceType means "all"
+  if (deviceType === undefined) {
+    deviceType = "all";
+  }
+  var dev, LibType, cct_2, name_1, status_1, status_final;
+
+  // Initialize the string to fill with the information
+  var uc_pv = "Name1,Name2,Type_Park,Status1,Status2,StatusFinal\n";
+  var uc_wp = "Name1,Name2,Type_Park,Status1,Status2,StatusFinal\n";
+  var uc_sg = "Name1,Name2,Name3,Status1,Status2,Status3,StatusFinal\n";
+  var uc_converter = "Name1,LibType,Status1,StatusFinal\n";
+
+  var all_non_excl_devs = cct.devices(4, -1, 6, "Exclude", ""); // included devices
+  // first loop search in the top level
+  for (var ii = 0; ii < all_non_excl_devs.length; ii++) {
+    //*********** LEVEL 1 */
+    dev = all_non_excl_devs[ii];
+    LibType = dev.getAttribute("LibType");
+    name_1 = dev.getAttribute("Name");
+    status_1 = "1";
+    // search in the object without an associated script
+    if (dev.getAttribute("Script.Open.Dev") == "") {
+      cct_2 = dev.subCircuit(); // get subcircuit
+      //*********** LEVEL 2 */
+      //  ***************INCLUDED DEVICES
+      var all_non_excl_devs_2 = cct_2.devices(4, -1, 4, "Exclude", ""); // non excluded devices
+      var dev_2, LibType_2, cct_3, name_2, status_2;
+      // search in second level
+      for (var jj = 0; jj < all_non_excl_devs_2.length; jj++) {
+        dev_2 = all_non_excl_devs_2[jj];
+        LibType_2 = dev_2.getAttribute("LibType");
+        name_2 = dev_2.getAttribute("Name");
+        status_2 = "1"; // porque estoy en non_excl
+        // si es que es otro elemento vacío entonces entro
+        if (dev_2.getAttribute("Script.Open.Dev") == "") {
+          cct_3 = dev_2.subCircuit();
+          //*********** LEVEL 3 */
+          var all_non_excl_devs_3 = cct_3.devices(4, -1, 4, "Exclude", ""); // non excluded devices
+          var dev_3, LibType_3, name_3, status_3;
+          for (var kk = 0; kk < all_non_excl_devs_3.length; kk++) {
+            dev_3 = all_non_excl_devs_3[kk];
+            LibType_3 = dev_3.getAttribute("LibType");
+            name_3 = dev_3.getAttribute("Name");
+            status_3 = "1";
+            if (LibType_3 == "synchronous machine") {
+              status_final =
+                status_1 === "1" && status_2 === "1" && status_3 === "1"
+                  ? "1"
+                  : "0";
+              uc_sg +=
+                name_1 +
+                "," +
+                name_2 +
+                "," +
+                name_3 +
+                "," +
+                status_1 +
+                "," +
+                status_2 +
+                "," +
+                status_3 +
+                "," +
+                status_final +
+                "\n";
+            }
+            else if (LibType_3 == "Synchronous") {
+              status_final =
+                status_1 === "1" && status_2 === "1" && status_3 === "1"
+                  ? "1"
+                  : "0";
+              uc_sg +=
+                name_1 +
+                "," +
+                name_2 +
+                "," +
+                name_3 +
+                "," +
+                status_1 +
+                "," +
+                status_2 +
+                "," +
+                status_3 +
+                "," +
+                status_final +
+                "\n";
+            }
+          }
+          var all_excl_devs_3 = cct_3.devices(4, -1, 4, "Exclude", "Ex"); //excluded devices
+          for (var kk = 0; kk < all_excl_devs_3.length; kk++) {
+            dev_3 = all_excl_devs_3[kk];
+            LibType_3 = dev_3.getAttribute("LibType");
+            name_3 = dev_3.getAttribute("Name");
+            status_3 = "0";
+            if (LibType_3 == "synchronous machine") {
+              status_final =
+                status_1 === "1" && status_2 === "1" && status_3 === "1"
+                  ? "1"
+                  : "0";
+              uc_sg +=
+                name_1 +
+                "," +
+                name_2 +
+                "," +
+                name_3 +
+                "," +
+                status_1 +
+                "," +
+                status_2 +
+                "," +
+                status_3 +
+                "," +
+                status_final +
+                "\n";
+            }
+            else if (LibType_3 == "Synchronous") {
+              status_final =
+                status_1 === "1" && status_2 === "1" && status_3 === "1"
+                  ? "1"
+                  : "0";
+              uc_sg +=
+                name_1 +
+                "," +
+                name_2 +
+                "," +
+                name_3 +
+                "," +
+                status_1 +
+                "," +
+                status_2 +
+                "," +
+                status_3 +
+                "," +
+                status_final +
+                "\n";
+            }
+          }
+          continue; // si es que encontró entonces paso al siguiente
+        }
+
+        // If Script open dev is not empty, check the cases
+        switch (LibType_2) {
+          case "WECC PV park":
+            status_final = status_1 === "1" && status_2 === "1" ? "1" : "0";
+            uc_pv +=
+              name_1 +
+              "," +
+              name_2 +
+              "," +
+              LibType_2 +
+              "," +
+              status_1 +
+              "," +
+              status_2 +
+              "," +
+              status_final +
+              "\n";
+            break;
+          case "PV park":
+            status_final = status_1 === "1" && status_2 === "1" ? "1" : "0";
+            uc_pv +=
+              name_1 +
+              "," +
+              name_2 +
+              "," +
+              LibType_2 +
+              "," +
+              status_1 +
+              "," +
+              status_2 +
+              "," +
+              status_final +
+              "\n";
+            break;
+          case "WECC WP":
+            status_final = status_1 === "1" && status_2 === "1" ? "1" : "0";
+            uc_wp +=
+              name_1 +
+              "," +
+              name_2 +
+              "," +
+              LibType_2 +
+              "," +
+              status_1 +
+              "," +
+              status_2 +
+              "," +
+              status_final +
+              "\n";
+            break;
+          case "WECC Wind park":
+            status_final = status_1 === "1" && status_2 === "1" ? "1" : "0";
+            uc_wp +=
+              name_1 +
+              "," +
+              name_2 +
+              "," +
+              LibType_2 +
+              "," +
+              status_1 +
+              "," +
+              status_2 +
+              "," +
+              status_final +
+              "\n";
+            break;
+          case "DFIG Wind park":
+            status_final = status_1 === "1" && status_2 === "1" ? "1" : "0";
+            uc_wp +=
+              name_1 +
+              "," +
+              name_2 +
+              "," +
+              LibType_2 +
+              "," +
+              status_1 +
+              "," +
+              status_2 +
+              "," +
+              status_final +
+              "\n";
+            break;
+          case "FC Wind park":
+            status_final = status_1 === "1" && status_2 === "1" ? "1" : "0";
+            uc_wp +=
+              name_1 +
+              "," +
+              name_2 +
+              "," +
+              LibType_2 +
+              "," +
+              status_1 +
+              "," +
+              status_2 +
+              "," +
+              status_final +
+              "\n";
+            break;
+        }
+      }
+      // ****************EXCLUDED DEVICES
+      var all_excl_devs_2 = cct_2.devices(4, -1, 4, "Exclude", "Ex"); //excluded devices
+      for (var jj = 0; jj < all_excl_devs_2.length; jj++) {
+        dev_2 = all_excl_devs_2[jj];
+        LibType_2 = dev_2.getAttribute("LibType");
+        name_2 = dev_2.getAttribute("Name");
+        status_2 = "0"; // porque estoy en excl
+        // si es que es otro elemento vacío entonces entro de nuevo
+        if (dev_2.getAttribute("Script.Open.Dev") == "") {
+          cct_3 = dev_2.subCircuit();
+          var all_non_excl_devs_3 = cct_3.devices(4, -1, 4, "Exclude", ""); // non excluded devices
+          var dev_3, LibType_3, name_3, status_3;
+          for (var kk = 0; kk < all_non_excl_devs_3.length; kk++) {
+            dev_3 = all_non_excl_devs_3[kk];
+            LibType = dev_3.getAttribute("LibType");
+            name_3 = dev_3.getAttribute("Name");
+            status_3 = "1";
+            if (LibType == "synchronous machine") {
+              status_final =
+                status_1 === "1" && status_2 === "1" && status_3 === "1"
+                  ? "1"
+                  : "0";
+              uc_sg +=
+                name_1 +
+                "," +
+                name_2 +
+                "," +
+                name_3 +
+                "," +
+                status_1 +
+                "," +
+                status_2 +
+                "," +
+                status_3 +
+                "," +
+                status_final +
+                "\n";
+            }
+            else if (LibType == "Synchronous") {
+              status_final =
+                status_1 === "1" && status_2 === "1" && status_3 === "1"
+                  ? "1"
+                  : "0";
+              uc_sg +=
+                name_1 +
+                "," +
+                name_2 +
+                "," +
+                name_3 +
+                "," +
+                status_1 +
+                "," +
+                status_2 +
+                "," +
+                status_3 +
+                "," +
+                status_final +
+                "\n";
+            }
+          }
+          var all_excl_devs_3 = cct_3.devices(4, -1, 4, "Exclude", "Ex"); //excluded devices
+          for (var kk = 0; kk < all_excl_devs_3.length; kk++) {
+            dev_3 = all_excl_devs_3[kk];
+            LibType = dev_3.getAttribute("LibType");
+            name_3 = dev_3.getAttribute("Name");
+            status_3 = "0";
+            if (LibType == "synchronous machine") {
+              status_final =
+                status_1 === "1" && status_2 === "1" && status_3 === "1"
+                  ? "1"
+                  : "0";
+              uc_sg +=
+                name_1 +
+                "," +
+                name_2 +
+                "," +
+                name_3 +
+                "," +
+                status_1 +
+                "," +
+                status_2 +
+                "," +
+                status_3 +
+                "," +
+                status_final +
+                "\n";
+            }
+          }
+        }
+        switch (LibType_2) {
+          case "WECC PV park":
+            status_final = status_1 === "1" && status_2 === "1" ? "1" : "0";
+            uc_pv +=
+              name_1 +
+              "," +
+              name_2 +
+              "," +
+              LibType_2 +
+              "," +
+              status_1 +
+              "," +
+              status_2 +
+              "," +
+              status_final +
+              "\n";
+            break;
+          case "PV park":
+            status_final = status_1 === "1" && status_2 === "1" ? "1" : "0";
+            uc_pv +=
+              name_1 +
+              "," +
+              name_2 +
+              "," +
+              LibType_2 +
+              "," +
+              status_1 +
+              "," +
+              status_2 +
+              "," +
+              status_final +
+              "\n";
+            break;
+          case "WECC WP":
+            status_final = status_1 === "1" && status_2 === "1" ? "1" : "0";
+            uc_wp +=
+              name_1 +
+              "," +
+              name_2 +
+              "," +
+              LibType_2 +
+              "," +
+              status_1 +
+              "," +
+              status_2 +
+              "," +
+              status_final +
+              "\n";
+            break;
+          case "DFIG Wind park":
+            status_final = status_1 === "1" && status_2 === "1" ? "1" : "0";
+            uc_wp +=
+              name_1 +
+              "," +
+              name_2 +
+              "," +
+              LibType_2 +
+              "," +
+              status_1 +
+              "," +
+              status_2 +
+              "," +
+              status_final +
+              "\n";
+            break;
+          case "FC Wind park":
+            status_final = status_1 === "1" && status_2 === "1" ? "1" : "0";
+            uc_wp +=
+              name_1 +
+              "," +
+              name_2 +
+              "," +
+              LibType_2 +
+              "," +
+              status_1 +
+              "," +
+              status_2 +
+              "," +
+              status_final +
+              "\n";
+            break;
+        }
+      }
+      continue;
+    }
+    // If Script open dev is not empty, check the cases
+    switch (LibType) {
+      case "WECC PV park":
+        uc_pv +=
+          name_1 +
+          ",-," +
+          LibType +
+          "," +
+          status_1 +
+          ",-," +
+          status_1 + // ahora status 1 = status final
+          "\n";
+        break;
+      case "PV park":
+        uc_pv +=
+          name_1 +
+          ",-," +
+          LibType +
+          "," +
+          status_1 +
+          ",-," +
+          status_1 + // ahora status 1 = status final
+          "\n";
+        break;
+      case "WECC WP":
+        uc_wp +=
+          name_1 +
+          ",-," +
+          LibType +
+          "," +
+          status_1 +
+          ",-," +
+          status_1 + // ahora status 1 = status final
+          "\n";
+        break;
+
+      case "WECC Wind park":
+        uc_wp +=
+          name_1 +
+          ",-," +
+          LibType +
+          "," +
+          status_1 +
+          ",-," +
+          status_1 + // ahora status 1 = status final
+          "\n";
+        break;
+      case "DFIG Wind park":
+        uc_wp +=
+          name_1 +
+          ",-," +
+          LibType +
+          "," +
+          status_1 +
+          ",-," +
+          status_1 + // ahora status 1 = status final
+          "\n";
+        break;
+      case "FC Wind park":
+        uc_wp +=
+          name_1 +
+          ",-," +
+          LibType +
+          "," +
+          status_1 +
+          ",-," +
+          status_1 + // ahora status 1 = status final
+          "\n";
+        break;
+      case "AC-DC converter with control":
+        uc_converter +=
+          name_1 +
+          "," +
+          LibType +
+          "," +
+          status_1 +
+          "," +
+          status_1 + // ahora status 1 = status final
+          "\n";
+        break;
+      case "STATCOM":
+        uc_converter +=
+          name_1 +
+          "," +
+          LibType +
+          "," +
+          status_1 +
+          "," +
+          status_1 + // ahora status 1 = status final
+          "\n";
+        break;
+    }
+  }
+
+  var all_excl_devs = cct.devices(4, -1, 6, "Exclude", "Ex"); //excluded devices
+  // first loop search in the top level
+  for (var ii = 0; ii < all_excl_devs.length; ii++) {
+    //*********** LEVEL 1 */
+    dev = all_excl_devs[ii];
+    LibType = dev.getAttribute("LibType");
+    name_1 = dev.getAttribute("Name");
+    status_1 = "0";
+    // search in the object without an associated script
+    if (dev.getAttribute("Script.Open.Dev") == "") {
+      cct_2 = dev.subCircuit(); // get subcircuit
+      //*********** LEVEL 2 */
+      //  ***************INCLUDED DEVICES
+      var all_non_excl_devs_2 = cct_2.devices(4, -1, 4, "Exclude", ""); // non excluded devices
+      var dev_2, LibType_2, cct_3, name_2, status_2;
+      // search in second level
+      for (var jj = 0; jj < all_non_excl_devs_2.length; jj++) {
+        dev_2 = all_non_excl_devs_2[jj];
+        LibType_2 = dev_2.getAttribute("LibType");
+        name_2 = dev_2.getAttribute("Name");
+        status_2 = "1"; // porque estoy en non_excl
+        // si es que es otro elemento vacío entonces entro
+        if (dev_2.getAttribute("Script.Open.Dev") == "") {
+          cct_3 = dev_2.subCircuit();
+          //*********** LEVEL 3 */
+          var all_non_excl_devs_3 = cct_3.devices(4, -1, 4, "Exclude", ""); // non excluded devices
+          var dev_3, LibType_3, name_3, status_3;
+          for (var kk = 0; kk < all_non_excl_devs_3.length; kk++) {
+            dev_3 = all_non_excl_devs_3[kk];
+            LibType_3 = dev_3.getAttribute("LibType");
+            name_3 = dev_3.getAttribute("Name");
+            status_3 = "1";
+            if (LibType_3 == "synchronous machine") {
+              status_final =
+                status_1 === "1" && status_2 === "1" && status_3 === "1"
+                  ? "1"
+                  : "0";
+              uc_sg +=
+                name_1 +
+                "," +
+                name_2 +
+                "," +
+                name_3 +
+                "," +
+                status_1 +
+                "," +
+                status_2 +
+                "," +
+                status_3 +
+                "," +
+                status_final +
+                "\n";
+            }
+          }
+          var all_excl_devs_3 = cct_3.devices(4, -1, 4, "Exclude", "Ex"); //excluded devices
+          for (var kk = 0; kk < all_excl_devs_3.length; kk++) {
+            dev_3 = all_excl_devs_3[kk];
+            LibType_3 = dev_3.getAttribute("LibType");
+            name_3 = dev_3.getAttribute("Name");
+            status_3 = "0";
+            if (LibType_3 == "synchronous machine") {
+              status_final =
+                status_1 === "1" && status_2 === "1" && status_3 === "1"
+                  ? "1"
+                  : "0";
+              uc_sg +=
+                name_1 +
+                "," +
+                name_2 +
+                "," +
+                name_3 +
+                "," +
+                status_1 +
+                "," +
+                status_2 +
+                "," +
+                status_3 +
+                "," +
+                status_final +
+                "\n";
+            }
+          }
+          continue; // si es que encontró entonces paso al siguiente
+        }
+
+        // If Script open dev is not empty, check the cases
+        switch (LibType_2) {
+          case "WECC PV park":
+            status_final = status_1 === "1" && status_2 === "1" ? "1" : "0";
+            uc_pv +=
+              name_1 +
+              "," +
+              name_2 +
+              "," +
+              LibType_2 +
+              "," +
+              status_1 +
+              "," +
+              status_2 +
+              "," +
+              status_final +
+              "\n";
+            break;
+          case "PV park":
+            status_final = status_1 === "1" && status_2 === "1" ? "1" : "0";
+            uc_pv +=
+              name_1 +
+              "," +
+              name_2 +
+              "," +
+              LibType_2 +
+              "," +
+              status_1 +
+              "," +
+              status_2 +
+              "," +
+              status_final +
+              "\n";
+            break;
+          case "WECC WP":
+            status_final = status_1 === "1" && status_2 === "1" ? "1" : "0";
+            uc_wp +=
+              name_1 +
+              "," +
+              name_2 +
+              "," +
+              LibType_2 +
+              "," +
+              status_1 +
+              "," +
+              status_2 +
+              "," +
+              status_final +
+              "\n";
+            break;
+          case "WECC Wind park":
+            status_final = status_1 === "1" && status_2 === "1" ? "1" : "0";
+            uc_wp +=
+              name_1 +
+              "," +
+              name_2 +
+              "," +
+              LibType_2 +
+              "," +
+              status_1 +
+              "," +
+              status_2 +
+              "," +
+              status_final +
+              "\n";
+            break;
+          case "DFIG Wind park":
+            status_final = status_1 === "1" && status_2 === "1" ? "1" : "0";
+            uc_wp +=
+              name_1 +
+              "," +
+              name_2 +
+              "," +
+              LibType_2 +
+              "," +
+              status_1 +
+              "," +
+              status_2 +
+              "," +
+              status_final +
+              "\n";
+            break;
+          case "FC Wind park":
+            status_final = status_1 === "1" && status_2 === "1" ? "1" : "0";
+            uc_wp +=
+              name_1 +
+              "," +
+              name_2 +
+              "," +
+              LibType_2 +
+              "," +
+              status_1 +
+              "," +
+              status_2 +
+              "," +
+              status_final +
+              "\n";
+            break;
+        }
+      }
+      // ****************EXCLUDED DEVICES
+      var all_excl_devs_2 = cct_2.devices(4, -1, 4, "Exclude", "Ex"); //excluded devices
+      for (var jj = 0; jj < all_excl_devs_2.length; jj++) {
+        dev_2 = all_excl_devs_2[jj];
+        LibType_2 = dev_2.getAttribute("LibType");
+        name_2 = dev_2.getAttribute("Name");
+        status_2 = "0"; // porque estoy en excl
+        // si es que es otro elemento vacío entonces entro de nuevo
+        if (dev_2.getAttribute("Script.Open.Dev") == "") {
+          cct_3 = dev_2.subCircuit();
+          var all_non_excl_devs_3 = cct_3.devices(4, -1, 4, "Exclude", ""); // non excluded devices
+          var dev_3, LibType_3, name_3, status_3;
+          for (var kk = 0; kk < all_non_excl_devs_3.length; kk++) {
+            dev_3 = all_non_excl_devs_3[kk];
+            LibType = dev_3.getAttribute("LibType");
+            name_3 = dev_3.getAttribute("Name");
+            status_3 = "1";
+            if (LibType == "synchronous machine") {
+              status_final =
+                status_1 === "1" && status_2 === "1" && status_3 === "1"
+                  ? "1"
+                  : "0";
+              uc_sg +=
+                name_1 +
+                "," +
+                name_2 +
+                "," +
+                name_3 +
+                "," +
+                status_1 +
+                "," +
+                status_2 +
+                "," +
+                status_3 +
+                "," +
+                status_final +
+                "\n";
+            }
+          }
+          var all_excl_devs_3 = cct_3.devices(4, -1, 4, "Exclude", "Ex"); //excluded devices
+          for (var kk = 0; kk < all_excl_devs_3.length; kk++) {
+            dev_3 = all_excl_devs_3[kk];
+            LibType = dev_3.getAttribute("LibType");
+            name_3 = dev_3.getAttribute("Name");
+            status_3 = "0";
+            if (LibType == "synchronous machine") {
+              status_final =
+                status_1 === "1" && status_2 === "1" && status_3 === "1"
+                  ? "1"
+                  : "0";
+              uc_sg +=
+                name_1 +
+                "," +
+                name_2 +
+                "," +
+                name_3 +
+                "," +
+                status_1 +
+                "," +
+                status_2 +
+                "," +
+                status_3 +
+                "," +
+                status_final +
+                "\n";
+            }
+          }
+        }
+        switch (LibType_2) {
+          case "WECC PV park":
+            status_final = status_1 === "1" && status_2 === "1" ? "1" : "0";
+            uc_pv +=
+              name_1 +
+              "," +
+              name_2 +
+              "," +
+              LibType_2 +
+              "," +
+              status_1 +
+              "," +
+              status_2 +
+              "," +
+              status_final +
+              "\n";
+            break;
+          case "PV park":
+            status_final = status_1 === "1" && status_2 === "1" ? "1" : "0";
+            uc_pv +=
+              name_1 +
+              "," +
+              name_2 +
+              "," +
+              LibType_2 +
+              "," +
+              status_1 +
+              "," +
+              status_2 +
+              "," +
+              status_final +
+              "\n";
+            break;
+          case "WECC WP":
+            status_final = status_1 === "1" && status_2 === "1" ? "1" : "0";
+            uc_wp +=
+              name_1 +
+              "," +
+              name_2 +
+              "," +
+              LibType_2 +
+              "," +
+              status_1 +
+              "," +
+              status_2 +
+              "," +
+              status_final +
+              "\n";
+            break;
+          case "WECC Wind park":
+            status_final = status_1 === "1" && status_2 === "1" ? "1" : "0";
+            uc_wp +=
+              name_1 +
+              "," +
+              name_2 +
+              "," +
+              LibType_2 +
+              "," +
+              status_1 +
+              "," +
+              status_2 +
+              "," +
+              status_final +
+              "\n";
+            break;
+          case "DFIG Wind park":
+            status_final = status_1 === "1" && status_2 === "1" ? "1" : "0";
+            uc_wp +=
+              name_1 +
+              "," +
+              name_2 +
+              "," +
+              LibType_2 +
+              "," +
+              status_1 +
+              "," +
+              status_2 +
+              "," +
+              status_final +
+              "\n";
+            break;
+          case "FC Wind park":
+            status_final = status_1 === "1" && status_2 === "1" ? "1" : "0";
+            uc_wp +=
+              name_1 +
+              "," +
+              name_2 +
+              "," +
+              LibType_2 +
+              "," +
+              status_1 +
+              "," +
+              status_2 +
+              "," +
+              status_final +
+              "\n";
+            break;
+        }
+      }
+      continue;
+    }
+    // If Script open dev is not empty, check the cases
+    switch (LibType) {
+      case "WECC PV park":
+        uc_pv +=
+          name_1 +
+          ",-," +
+          LibType +
+          "," +
+          status_1 +
+          ",-," +
+          status_1 + // ahora status 1 = status final
+          "\n";
+        break;
+      case "PV park":
+        uc_pv +=
+          name_1 +
+          ",-," +
+          LibType +
+          "," +
+          status_1 +
+          ",-," +
+          status_1 + // ahora status 1 = status final
+          "\n";
+        break;
+      case "WECC WP":
+        uc_wp +=
+          name_1 +
+          ",-," +
+          LibType +
+          "," +
+          status_1 +
+          ",-," +
+          status_1 + // ahora status 1 = status final
+          "\n";
+        break;
+      case "WECC Wind park":
+        uc_wp +=
+          name_1 +
+          ",-," +
+          LibType +
+          "," +
+          status_1 +
+          ",-," +
+          status_1 + // ahora status 1 = status final
+          "\n";
+        break;
+      case "DFIG Wind park":
+        uc_wp +=
+          name_1 +
+          ",-," +
+          LibType +
+          "," +
+          status_1 +
+          ",-," +
+          status_1 + // ahora status 1 = status final
+          "\n";
+        break;
+      case "FC Wind park":
+        uc_wp +=
+          name_1 +
+          ",-," +
+          LibType +
+          "," +
+          status_1 +
+          ",-," +
+          status_1 + // ahora status 1 = status final
+          "\n";
+        break;
+      case "AC-DC converter with control":
+        uc_converter +=
+          name_1 +
+          "," +
+          LibType +
+          "," +
+          status_1 +
+          "," +
+          status_1 + // ahora status 1 = status final
+          "\n";
+        break;
+      case "STATCOM":
+        uc_converter +=
+          name_1 +
+          "," +
+          LibType +
+          "," +
+          status_1 +
+          "," +
+          status_1 + // ahora status 1 = status final
+          "\n";
+        break;
+    }
+  }
+
+  switch (deviceType) {
+    case "all":
+      outputFile(uc_sg, "uc_sg_", pathData);
+      outputFile(uc_pv, "uc_pv_", pathData);
+      outputFile(uc_wp, "uc_wp_", pathData);
+      outputFile(uc_converter, "uc_converter_", pathData);
+      break;
+    case "PV":
+    case 0:
+      outputFile(uc_pv, "uc_pv_", pathData);
+      break;
+    case "SG":
+    case 1:
+      outputFile(uc_sg, "uc_sg_", pathData);
+      break;
+    case "WP":
+    case 5:
+      outputFile(uc_wp, "uc_wp_", pathData);
+      break;
+  }
+}

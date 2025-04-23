@@ -1,0 +1,44 @@
+parseScriptFile("AllCodes\\Load_States.dwj");
+parseScriptFile("AllCodes\\TF_States.dwj");
+parseScriptFile("AllCodes\\Gen_States.dwj");
+
+
+// ---------------------------------- EJECUTANDO FUNCIÓN ----------------------------------------
+//  ########### Estado de Cargas 
+var LoadConsole = SPRichConsole('Load PQ EXPORT', 'Load PQ States');
+LoadConsole.clear();
+LoadConsole.setFont("Arial Blue 14 white");
+LoadConsole.writeln("Extrayendo datos de cargas PQ...");
+
+// Ejecutar la función
+listarCargasPQ();
+
+// Mensaje final
+LoadConsole.setFont("Arial Green 12");
+LoadConsole.writeln("\nProcesamiento completado.");
+
+
+
+
+
+
+
+// ########### Estado de Transformadores 
+// Inicializar la consola
+var SwitchConsole = SPRichConsole('Transformers EXPORT', 'Trasnformers States');
+SwitchConsole.clear();
+SwitchConsole.setFont("Arial Blue 14 white");
+SwitchConsole.writeln("Extrayendo datos de transformadores...");
+
+// Ejecutar la función
+listarTransformadores();
+
+// Mensaje final
+SwitchConsole.setFont("Arial Green 12");
+SwitchConsole.writeln("\nProcesamiento completado.");
+
+
+// ########### Estado de Generadores PV WP SG
+
+// Exportar la función para que pueda ser llamada desde afuera
+verificadorGeneradores();
