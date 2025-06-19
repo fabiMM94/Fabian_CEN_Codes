@@ -1,0 +1,15 @@
+Vendor: NOJA Power Switchgear Pty Ltd
+Product: RC10
+Event-Type: 0
+Event-Name: Trip
+Start-Time: 2025-02-25T18:34:27.920917Z
+Trigger-Time: 2025-02-25T18:34:28.170906Z
+Duration: 0.5s
+Relay-Serial-Number: 0311715030455
+Relay-Software-Version: 1.13.1.0
+Relay-Hardware-Version: 1.0
+Relay-Database-Version: 16.0.1.0
+Relay-FPGA-Version: 0.0.30938
+SIM-Serial-Number: 0171715060276
+SIM-Software-Version: 1.9.1
+SIM-Hardware-Version: 4.1
