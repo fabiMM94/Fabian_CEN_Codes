@@ -32,6 +32,9 @@ Extractor 3: Este tiene incluido los filtro de columnas del excel exportado
 Extractor 4: Este tiene incluido las descargas de cartas y anexos
 Extractor 5 : se corrige el nombre de la carta descargada que tenia antes un string adicional
 EXttractor6 : Se corrige las extensiones de los anexos, los cuales tenian un .pdf alfinal en algunas veces
+Exctactor7 : Aqui incluyo las subcarpetas de anexos
 
 
 PostProcess2 : corrige el error de multiples archivos sueltos y .7z que no los checkeaba
+PostProcess3 : Nuevo Formato tipo SQL 
+PostProcces4: Cambia el formato para que en hoja Anexos tambien tenga la info de la Subcarpeta
